@@ -36,9 +36,24 @@ TARJETA = {
     "cvv": "111"
 }
 
+# 5. CHECKPOINT (PUNTO DE PAUSA)
+# Opciones: "BUSQUEDA", "SELECCION_TARIFA", "DATOS_PASAJERO", "CHECKOUT", "PAGO", None
+# Usa None para ejecutar el flujo completo sin pausas intermedias
+CHECKPOINT = None  # Cambia esto para detenerte en una sección específica
+
 # ==========================================
 # 🤖 INICIO DEL BOT
 # ==========================================
+
+def pausar_en_checkpoint(page, checkpoint_actual):
+    """Pausa el bot si se alcanza el checkpoint configurado"""
+    if CHECKPOINT == checkpoint_actual:
+        print(f"\n⏸️  CHECKPOINT ALCANZADO: {checkpoint_actual}")
+        print("🖱️  Puedes interactuar manualmente con la página.")
+        print("▶️  Presiona 'Resume' en el inspector para continuar o cerrar.\n")
+        page.pause()
+        return True
+    return False
 
 def run(playwright: Playwright) -> None:
     # Configuración del navegador
@@ -80,6 +95,10 @@ def run(playwright: Playwright) -> None:
     
     page.get_by_role("button", name="Buscar vuelo").click()
 
+    # 🛑 Checkpoint: Después de búsqueda
+    if pausar_en_checkpoint(page, "BUSQUEDA"):
+        return
+
     # -------------------------------------------
     # 2. SELECCIÓN DE TARIFA
     # -------------------------------------------
@@ -120,6 +139,10 @@ def run(playwright: Playwright) -> None:
     page.get_by_role("button", name="Continuar al siguiente vuelo").click()
     page.get_by_role("button", name="Continuar sin elegir").click()
     page.get_by_role("button", name="Continuar").click()
+
+    # 🛑 Checkpoint: Después de selección de tarifa
+    if pausar_en_checkpoint(page, "SELECCION_TARIFA"):
+        return
 
     # -------------------------------------------
     # 3. DATOS DEL PASAJERO
@@ -176,12 +199,20 @@ def run(playwright: Playwright) -> None:
         if btn_mod.is_visible(timeout=5000): btn_mod.click(force=True)
     except: pass
 
+    # 🛑 Checkpoint: Después de datos del pasajero
+    if pausar_en_checkpoint(page, "DATOS_PASAJERO"):
+        return
+
     # -------------------------------------------
     # 4. CHECKOUT Y PAGO
     # -------------------------------------------
     print("--- Llegada al Checkout ---")
     expect(page).to_have_url(re.compile(".*checkout"), timeout=30000)
-    
+
+    # 🛑 Checkpoint: En el checkout
+    if pausar_en_checkpoint(page, "CHECKOUT"):
+        return
+
     print("--- Iniciando Pago Niubiz ---")
     page.wait_for_selector('text="Niubiz"', timeout=45000)
     
@@ -246,7 +277,11 @@ def run(playwright: Playwright) -> None:
             page.keyboard.press("Tab")
             print(f"⌨️ CVV: {TARJETA['cvv']}")
             page.keyboard.type(TARJETA["cvv"], delay=100)
-            
+
+            # 🛑 Checkpoint: Después de llenar datos de pago
+            if pausar_en_checkpoint(page, "PAGO"):
+                return
+
             # -------------------------------------------
             # 5. FINALIZAR COMPRA
             # -------------------------------------------

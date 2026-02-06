@@ -86,6 +86,31 @@ TIEMPO_PAUSA_SEGURIDAD = 1500  # Pausa antes de interactuar con campos (ms)
 VELOCIDAD_VISUAL = 500          # Velocidad de animación del navegador (ms)
 ```
 
+### 🛑 Checkpoints (Pausas dinámicas):
+Puedes detener el bot en puntos específicos del flujo para probar algo manualmente:
+
+```python
+CHECKPOINT = None  # Sin pausas intermedias (ejecuta todo el flujo)
+```
+
+**Opciones disponibles:**
+- `"BUSQUEDA"` - Pausa después de buscar el vuelo
+- `"SELECCION_TARIFA"` - Pausa después de seleccionar vuelo y tarifa
+- `"DATOS_PASAJERO"` - Pausa después de llenar datos del pasajero
+- `"CHECKOUT"` - Pausa al llegar al checkout
+- `"PAGO"` - Pausa después de llenar datos de pago (antes de clickear "Ir a pagar")
+- `None` - Sin pausas (ejecuta el flujo completo)
+
+**Ejemplo de uso:**
+```python
+CHECKPOINT = "CHECKOUT"  # El bot se detendrá al llegar al checkout
+```
+
+Cuando el bot alcance el checkpoint, verás el inspector de Playwright donde podrás:
+- ✋ Interactuar manualmente con la página
+- 🔍 Inspeccionar elementos
+- ▶️ Presionar "Resume" para continuar o cerrar el navegador
+
 ## 🚀 Ejecución
 
 ### Ejecutar el bot:

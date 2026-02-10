@@ -74,12 +74,18 @@ def run(playwright: Playwright) -> None:
         page.wait_for_selector('button:has-text("Elegir vuelo"), [data-test^="is-itinerary-selectFlight"]', timeout=30000)
     except: pass
 
+    # Pausa adicional para que las cards terminen de cargar
+    print("⏳ Esperando a que las cards de vuelo carguen completamente...")
+    page.wait_for_timeout(2500)  # 2.5 segundos adicionales
+
     btns = page.locator('button:has-text("Elegir vuelo")')
     if btns.count() == 0: btns = page.locator('[data-test^="is-itinerary-selectFlight"]')
     
     seleccionado = False
     for i in range(btns.count()):
         try:
+            btns.nth(i).scroll_into_view_if_needed()  # Asegurar visibilidad
+            page.wait_for_timeout(500)  # Pequeña pausa después del scroll
             btns.nth(i).click(force=True)
             page.wait_for_selector('[data-test^="is-itinerary-selectRate"]', timeout=5000)
             seleccionado = True
@@ -175,7 +181,14 @@ def run(playwright: Playwright) -> None:
     # 4. CHECKOUT Y PAGO
     # -------------------------------------------
     print("--- Llegada al Checkout ---")
-    expect(page).to_have_url(re.compile(".*checkout"), timeout=30000)
+
+    try:
+        expect(page).to_have_url(re.compile(".*checkout"), timeout=30000)
+    except Exception as e:
+        print(f"⚠️ No se pudo llegar al checkout en 30s: {e}")
+        print("🖱️ Activando modo manual - continúa tú desde aquí")
+        page.pause()
+        return
 
     # 🛑 Checkpoint: En el checkout
     if pausar_en_checkpoint(page, "CHECKOUT"):
@@ -185,16 +198,22 @@ def run(playwright: Playwright) -> None:
     market = CFG["market"]
     print(f"--- Iniciando Pago: {medio} ({market}) ---")
 
-    if market == "PE":
-        _pagar_niubiz(page)
-    elif market == "CL":
-        _pagar_webpay(page)
-    elif market == "AR":
-        _pagar_mercadopago(page)
-    elif market == "BR":
-        _pagar_cielo(page)
-    else:
-        print(f"❌ Market '{market}' no tiene flujo de pago implementado.")
+    try:
+        if market == "PE":
+            _pagar_niubiz(page)
+        elif market == "CL":
+            _pagar_webpay(page)
+        elif market == "AR":
+            _pagar_mercadopago(page)
+        elif market == "BR":
+            _pagar_cielo(page)
+        else:
+            print(f"❌ Market '{market}' no tiene flujo de pago implementado.")
+    except Exception as e:
+        print(f"❌ Error en flujo de pago: {e}")
+        page.screenshot(path="error_pago.png")
+        print("🖱️ Activando modo manual - continúa tú desde aquí")
+        page.pause()
 
     # Pausa final para ver el resultado
     print("✅ Fin del script.")
@@ -209,7 +228,13 @@ def run(playwright: Playwright) -> None:
 
 def _pagar_niubiz(page):
     """Perú — Niubiz"""
-    page.wait_for_selector('text="Niubiz"', timeout=45000)
+    try:
+        page.wait_for_selector('text="Niubiz"', timeout=45000)
+    except Exception as e:
+        print(f"⚠️ Niubiz no apareció en 45s: {e}")
+        print("🖱️ Activando modo manual - continúa tú desde aquí")
+        page.pause()
+        return
     niubiz_btn = page.locator("div").filter(has_text="Niubiz").last
     niubiz_btn.scroll_into_view_if_needed()
     niubiz_btn.click(force=True)

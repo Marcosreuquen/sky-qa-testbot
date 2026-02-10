@@ -11,6 +11,8 @@ Este bot automatiza el proceso completo de compra de un vuelo en el sitio de Sky
 - Proceso de checkout
 - Pago con tarjeta de prueba mediante Niubiz
 
+📖 **Ver casos de prueba documentados:** [`CASOS_DE_PRUEBA.md`](CASOS_DE_PRUEBA.md)
+
 ## 🔧 Requisitos Previos
 
 - Python 3.8 o superior

@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from datetime import datetime
 
 from playwright._impl._errors import TargetClosedError
@@ -155,8 +156,25 @@ def _esperar_home_lista(page, timeout_ms=45000):
     ultimo_error = None
     while (datetime.now() - inicio).total_seconds() * 1000 < timeout_ms:
         try:
-            origen = _buscar_selector_visible(page, ["#origin-id input", "#origin-id"])
-            destino = _buscar_selector_visible(page, ["#destination-id input", "#destination-id"])
+            # En SKY el input editable puede aparecer recién tras click en el contenedor.
+            origen = _buscar_selector_visible(
+                page,
+                [
+                    "#origin-id",
+                    "#origin-id input",
+                    'input[placeholder*="Desde" i]',
+                    'input[aria-label*="Desde" i]',
+                ],
+            )
+            destino = _buscar_selector_visible(
+                page,
+                [
+                    "#destination-id",
+                    "#destination-id input",
+                    'input[placeholder*="Hacia" i]',
+                    'input[aria-label*="Hacia" i]',
+                ],
+            )
             boton_buscar = _buscar_selector_visible(
                 page,
                 [
@@ -172,6 +190,54 @@ def _esperar_home_lista(page, timeout_ms=45000):
         page.wait_for_timeout(1000)
 
     raise RuntimeError(f"No se pudo detectar el formulario de búsqueda listo en {timeout_ms}ms: {ultimo_error}")
+
+
+def _panel_login_abierto(page):
+    return bool(
+        _buscar_selector_visible(
+            page,
+            [
+                ':text("Inicia sesión")',
+                'input[placeholder*="Correo electrónico" i]',
+                'input[placeholder*="Contraseña" i]',
+            ],
+        )
+    )
+
+
+def _cerrar_panel_login_si_abierto(page):
+    for _ in range(4):
+        if not _panel_login_abierto(page):
+            return True
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(140)
+        if not _panel_login_abierto(page):
+            return True
+
+        _click_selector_visible(
+            page,
+            [
+                'button:has-text("Cerrar")',
+                'button[aria-label*="cerrar" i]',
+                'aside button[aria-label*="close" i]',
+            ],
+            force=True,
+            requerido=False,
+        )
+        page.wait_for_timeout(140)
+    return not _panel_login_abierto(page)
+
+
+def _es_pagina_reutilizable(page):
+    try:
+        url = (page.url or "").strip().lower()
+    except Exception:
+        return False
+    if not url:
+        return False
+    if url in {"about:blank", "chrome://newtab/", "chrome://new-tab-page/"}:
+        return True
+    return url.startswith("chrome://newtab")
 
 
 def _buscar_visible(locator):
@@ -300,19 +366,44 @@ def _input_editable(locator_inputs):
 
 
 def _seleccionar_ciudad(page, contenedor_selector, ciudad):
+    _cerrar_panel_login_si_abierto(page)
     if not _click_selector_visible(page, [contenedor_selector], force=True, requerido=True):
         raise RuntimeError(f"No se pudo abrir selector de ciudad para '{ciudad}'.")
 
-    page.wait_for_timeout(250)
-    input_ciudad = _input_editable(page.locator(f"{contenedor_selector} input:not([readonly])"))
-    if not input_ciudad:
-        input_ciudad = _input_editable(page.locator(f"{contenedor_selector} input"))
+    input_ciudad = None
+    for intento in range(20):
+        page.wait_for_timeout(200)
+        input_ciudad = _input_editable(page.locator(":focus"))
+        if not input_ciudad:
+            input_ciudad = _input_editable(page.locator(f"{contenedor_selector} input:not([readonly])"))
+        if not input_ciudad:
+            input_ciudad = _input_editable(page.locator(f"{contenedor_selector} input"))
+        if not input_ciudad:
+            input_ciudad = _input_editable(
+                page.locator(
+                    'input[placeholder*="Desde" i]:not([readonly]), '
+                    'input[placeholder*="Hacia" i]:not([readonly]), '
+                    'input[placeholder*="Origen" i]:not([readonly]), '
+                    'input[placeholder*="Destino" i]:not([readonly]), '
+                    'input[aria-label*="Desde" i]:not([readonly]), '
+                    'input[aria-label*="Hacia" i]:not([readonly]), '
+                    'input[aria-label*="Origen" i]:not([readonly]), '
+                    'input[aria-label*="Destino" i]:not([readonly]), '
+                    '.ant-select-dropdown input:not([readonly]), '
+                    'input[role="combobox"]:not([readonly])',
+                )
+            )
+        if input_ciudad:
+            break
+        if intento in {5, 10, 15}:
+            _click_selector_visible(page, [contenedor_selector], force=True, requerido=False)
 
     if not input_ciudad:
         raise RuntimeError(f"No se encontró input editable para ciudad '{ciudad}'.")
 
+    input_ciudad.click(force=True)
     input_ciudad.fill(ciudad)
-    page.wait_for_timeout(500)
+    page.wait_for_timeout(700)
 
     # Intento 1: match exacto del nombre de ciudad
     if _click_texto_visible(page, ciudad, exacto=True):
@@ -322,6 +413,31 @@ def _seleccionar_ciudad(page, contenedor_selector, ciudad):
     opcion = _buscar_visible(page.get_by_text(re.compile(re.escape(ciudad), re.IGNORECASE)))
     if opcion:
         opcion.click()
+        return
+
+    # Intento 3: primera opción visible del dropdown/autocomplete
+    opcion_dropdown = _buscar_selector_visible(
+        page,
+        [
+            'div[role="option"]',
+            '.ant-select-item-option',
+            '.ant-select-item-option-content',
+            'li[role="option"]',
+        ],
+    )
+    if opcion_dropdown:
+        opcion_dropdown.click()
+        return
+
+    # Fallback final: algunos listados aceptan Enter sobre la primera sugerencia.
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(300)
+    texto_contenedor = ""
+    try:
+        texto_contenedor = _normalizar_texto(page.locator(contenedor_selector).first.inner_text())
+    except Exception:
+        pass
+    if ciudad.lower() in texto_contenedor.lower():
         return
 
     raise RuntimeError(f"No se encontró opción de autocompletado para ciudad '{ciudad}'.")
@@ -410,7 +526,6 @@ def _cerrar_calendario_si_abierto(page):
         if not _buscar_visible(dias_calendario):
             return
         page.keyboard.press("Escape")
-        page.mouse.click(20, 20)
         page.wait_for_timeout(150)
 
 
@@ -1117,15 +1232,33 @@ def _rellenar_todos_los_pasajeros(page):
     _click_selector_visible(page, ['button:has-text("Siguiente")', 'button:has-text("Ir al pago")'], force=True)
 
 
-def _obtener_contexto_cdp(browser):
-    if browser.contexts:
-        return browser.contexts[-1]
-    return browser.new_context()
+def _obtener_contexto_cdp(browser, timeout_segundos=8):
+    deadline = time.time() + timeout_segundos
+    while time.time() < deadline:
+        if browser.contexts:
+            return browser.contexts[-1]
+        time.sleep(0.2)
+
+    try:
+        return browser.new_context()
+    except Exception as error:
+        raise RuntimeError(
+            "CDP conectado, pero no hay contexto de navegador listo todavía. "
+            "Reintenta en unos segundos."
+        ) from error
 
 
-def _obtener_pagina_existente(context):
-    if context.pages:
-        return context.pages[0]
+def _obtener_pagina_existente(context, timeout_segundos=3):
+    deadline = time.time() + timeout_segundos
+    while time.time() < deadline:
+        if context.pages:
+            pagina = context.pages[0]
+            try:
+                if not pagina.is_closed():
+                    return pagina
+            except Exception:
+                pass
+        time.sleep(0.2)
     return None
 
 
@@ -1143,11 +1276,15 @@ def _crear_sesion_navegador(playwright):
         context = _obtener_contexto_cdp(browser)
         if CFG.get("cdp_reutilizar_primera_pestana"):
             page = _obtener_pagina_existente(context)
-            if page:
+            if page and _es_pagina_reutilizable(page):
+                try:
+                    page.bring_to_front()
+                except Exception:
+                    pass
                 print("🧭 CDP conectado: usando la primera pestaña disponible.")
             else:
                 page = context.new_page()
-                print("🧭 CDP conectado: no había pestañas, se abrió una nueva.")
+                print("🧭 CDP conectado: pestaña inicial no reusable; se abrió una nueva.")
         else:
             page = context.new_page()
             print("🧭 CDP conectado: se abrió una pestaña nueva para esta ejecución.")
@@ -1173,8 +1310,10 @@ def run(playwright: Playwright) -> None:
             if CFG["modo_exploracion"]:
                 print(f"    Modo exploración: ON | Evidencia en {EXPLORACION_DIR}")
             page.goto(CFG["url"])
+            _cerrar_panel_login_si_abierto(page)
             _capturar_estado_ui(page, "landing")
             _esperar_home_lista(page)
+            _cerrar_panel_login_si_abierto(page)
             _capturar_estado_ui(page, "landing_ready")
 
             # -------------------------------------------
@@ -1193,6 +1332,7 @@ def run(playwright: Playwright) -> None:
             _configurar_pasajeros_busqueda(page)
             _capturar_estado_ui(page, "busqueda_configurada")
 
+            _cerrar_panel_login_si_abierto(page)
             if not _click_selector_visible(
                 page,
                 ['button:has-text("Buscar vuelo")', 'button:has-text("Buscar voo")', 'button:has-text("Search")'],
@@ -1202,6 +1342,7 @@ def run(playwright: Playwright) -> None:
             ):
                 raise RuntimeError("No se pudo iniciar la búsqueda de vuelos.")
             page.wait_for_timeout(1500)
+            _cerrar_panel_login_si_abierto(page)
             _capturar_estado_ui(page, "post_busqueda")
 
             if CFG["solo_exploracion"]:

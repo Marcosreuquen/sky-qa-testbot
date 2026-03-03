@@ -1500,6 +1500,9 @@ def main():
         "border": "#d6dde8",
         "button": "#e7ecf5",
         "button_active": "#d9e2f0",
+        "primary_button": "#2563eb",
+        "primary_button_active": "#1d4ed8",
+        "primary_button_fg": "#ffffff",
         "section": "#eaf0f9",
         "section_active": "#dde7f5",
         "field": "#ffffff",
@@ -1518,6 +1521,19 @@ def main():
     style.map(
         "TButton",
         background=[("active", colors["button_active"]), ("pressed", colors["button_active"])],
+        foreground=[("disabled", colors["muted"])],
+    )
+    style.configure(
+        "Primary.TButton",
+        padding=(14, 6),
+        background=colors["primary_button"],
+        foreground=colors["primary_button_fg"],
+        relief="flat",
+        font=("SF Pro Text", 12, "bold"),
+    )
+    style.map(
+        "Primary.TButton",
+        background=[("active", colors["primary_button_active"]), ("pressed", colors["primary_button_active"])],
         foreground=[("disabled", colors["muted"])],
     )
     style.configure(

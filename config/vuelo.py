@@ -5,7 +5,8 @@
 VUELO_ORIGEN = "Santiago"
 VUELO_DESTINO = "Buenos Aires"
 
-# Antifraude: no permitir búsquedas con menos de 16 días de anticipación
+# Antifraude: umbral sugerido para evitar rechazos de pago
+# (si se usa menos de 16 días, CLI advierte pero no modifica el valor).
 MIN_DIAS_A_FUTURO = 16
 DIAS_A_FUTURO = 16  # Día disponible a seleccionar en calendario (mínimo 16)
 

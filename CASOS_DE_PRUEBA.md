@@ -20,7 +20,7 @@ venv/bin/python gui.py
 
 En la UI, si marcas **Usar Chrome abierto** intentará iniciarlo automáticamente si no está activo.
 La UI recuerda tus últimos ajustes (market, pasajeros, checkpoint, etc.) para la siguiente ejecución.
-Los campos de pasajero/tarjeta son opcionales y solo se usan si activas esa opción.
+Los campos de pasajero/tarjeta vienen precargados y siempre se aplican (puedes editarlos antes de ejecutar).
 
 ## Usar Chrome abierto (CDP)
 ```bash
@@ -66,4 +66,4 @@ venv/bin/python -u test_sky.py --market PE --tipo-viaje ROUND_TRIP --adultos 1 -
 - `--checkpoint BUSQUEDA|SELECCION_TARIFA|DATOS_PASAJERO|CHECKOUT|PAGO`
 - `--modo-exploracion`
 
-Nota: `--dias` menor a 16 se ajusta automáticamente a 16 por antifraude.
+Nota: `--dias` menor a 16 muestra advertencia antifraude, pero respeta el valor indicado.

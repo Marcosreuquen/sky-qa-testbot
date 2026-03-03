@@ -13,6 +13,37 @@ Este bot automatiza el proceso completo de compra de un vuelo en el sitio de Sky
 
 📖 **Ver casos de prueba documentados:** [`CASOS_DE_PRUEBA.md`](CASOS_DE_PRUEBA.md)
 
+## 🤖 AI-First Development
+
+Si vas a trabajar este repo con agentes (AI o humanos), empieza por:
+- [`AGENTS.md`](AGENTS.md) (guía operativa principal)
+- [`docs/START_HERE.md`](docs/START_HERE.md) (bootstrap obligatorio)
+- [`CHANGELOG.md`](CHANGELOG.md) (historial para ubicar regresiones)
+- [`docs/README.md`](docs/README.md) (índice de documentación técnica)
+- [`docs/AI_CONTEXT_PACK.md`](docs/AI_CONTEXT_PACK.md) (contexto corto para ahorrar tokens)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (arquitectura y contratos)
+- [`docs/CHANGE_PLAYBOOK.md`](docs/CHANGE_PLAYBOOK.md) (dónde tocar según pedido)
+- [`docs/REGRESSION_MATRIX.md`](docs/REGRESSION_MATRIX.md) (checklist anti-roturas)
+- [`docs/COMMIT_PROTOCOL.md`](docs/COMMIT_PROTOCOL.md) (estándar de commits)
+
+### Mapa rápido del repositorio
+
+- `test_sky.py`: flujo de automatización end-to-end (Playwright)
+- `cli.py`: flags y construcción de `CFG`
+- `gui.py`: interfaz visual, presets, persistencia y ejecución
+- `config/`: defaults por dominio (rutas, vuelo, pasajero, pago, checkpoint)
+- `run.sh`: arranque 1 comando en macOS
+
+### Comandos de validación para contributors/agentes
+
+```bash
+make ai-bootstrap
+make check
+make smoke-busqueda
+make smoke-checkout
+./scripts/validate_local.sh
+```
+
 ## 🔧 Requisitos Previos
 
 - macOS (prioridad del proyecto) con shell `bash`/`zsh`
@@ -178,8 +209,8 @@ Desde la interfaz puedes:
 ### Usar Chrome ya abierto (CDP)
 
 Desde `gui.py`, marca **Usar Chrome abierto**:
-- si Chrome ya está listo para automatización, se conecta y abre una pestaña nueva para la ejecución
-- si no está listo, usa **Abrir/Preparar Chrome para automatización** y reutiliza la primera pestaña creada
+- si Chrome ya está listo para automatización, se conecta y ejecuta en la sesión CDP
+- si no está listo, usa **Abrir/Preparar Chrome para automatización**
 - `CDP URL` es la dirección técnica de conexión a Chrome (normalmente no necesitas cambiarla)
 
 Si prefieres iniciar Chrome manualmente:

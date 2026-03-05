@@ -5,7 +5,7 @@ Flujo de datos de pasajero y avance a checkout:
 """
 
 import re
-from datetime import datetime
+import time
 
 from playwright.sync_api import expect
 
@@ -23,14 +23,22 @@ from core.helpers import (
 from core.search_flow import _saltar_extras, _seleccionar_opcion_dropdown
 
 
+# (selector, clave en pasajero, label para warning)
+_DROPDOWNS_PASAJERO = [
+    ('[data-test="is-thirdStep-dropdownGender"]', "genero", "género"),
+    ('[data-test="is-thirdStep-dropdownCountryIssue"]', "pais_emision", "país de emisión"),
+    ('[data-test="is-thirdStep-dropdownDocumentType"]', "doc_tipo", "tipo de documento"),
+]
+
+
 # ==========================================
 # AVANCE ENTRE ETAPAS
 # ==========================================
 
 def _esperar_o_avanzar_hasta_pasajeros(page, timeout_ms=60000):
-    inicio = datetime.now()
+    deadline = time.monotonic() + timeout_ms / 1000
 
-    while (datetime.now() - inicio).total_seconds() * 1000 < timeout_ms:
+    while time.monotonic() < deadline:
         url_actual = page.url or ""
         if "passenger-detail" in url_actual or "checkout" in url_actual:
             return
@@ -44,9 +52,9 @@ def _esperar_o_avanzar_hasta_pasajeros(page, timeout_ms=60000):
 
 
 def _avanzar_a_checkout_desde_passenger(page, timeout_ms=60000):
-    inicio = datetime.now()
+    deadline = time.monotonic() + timeout_ms / 1000
 
-    while (datetime.now() - inicio).total_seconds() * 1000 < timeout_ms:
+    while time.monotonic() < deadline:
         url_actual = page.url or ""
         if "checkout" in url_actual:
             return
@@ -79,9 +87,9 @@ def _avanzar_a_checkout_desde_passenger(page, timeout_ms=60000):
 
 
 def _avanzar_a_checkout(page, timeout_ms=60000):
-    inicio = datetime.now()
+    deadline = time.monotonic() + timeout_ms / 1000
 
-    while (datetime.now() - inicio).total_seconds() * 1000 < timeout_ms:
+    while time.monotonic() < deadline:
         if "checkout" in (page.url or ""):
             return True
 
@@ -281,17 +289,10 @@ def _rellenar_pasajero(page, pasajero, indice, total):
     )
     _rellenar_fecha_nacimiento(page, pasajero["fecha_nac"])
 
-    if _click_selector_visible(page, ['[data-test="is-thirdStep-dropdownGender"]']):
-        if not _seleccionar_opcion_dropdown(page, pasajero["genero"]):
-            print(f"⚠️ No se pudo seleccionar género '{pasajero['genero']}'.")
-
-    if _click_selector_visible(page, ['[data-test="is-thirdStep-dropdownCountryIssue"]']):
-        if not _seleccionar_opcion_dropdown(page, pasajero["pais_emision"]):
-            print(f"⚠️ No se pudo seleccionar país de emisión '{pasajero['pais_emision']}'.")
-
-    if _click_selector_visible(page, ['[data-test="is-thirdStep-dropdownDocumentType"]']):
-        if not _seleccionar_opcion_dropdown(page, pasajero["doc_tipo"]):
-            print(f"⚠️ No se pudo seleccionar tipo de documento '{pasajero['doc_tipo']}'.")
+    for selector, clave, label in _DROPDOWNS_PASAJERO:
+        if _click_selector_visible(page, [selector]):
+            if not _seleccionar_opcion_dropdown(page, pasajero[clave]):
+                print(f"⚠️ No se pudo seleccionar {label} '{pasajero[clave]}'.")
 
     _rellenar_input_visible(
         page,

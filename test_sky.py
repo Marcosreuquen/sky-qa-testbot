@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 
 from playwright._impl._errors import TargetClosedError
-from playwright.sync_api import Playwright, sync_playwright
+from playwright.sync_api import Playwright, expect, sync_playwright
 
 from cli import aplicar_args, parse_args
 import core.state as state
@@ -136,7 +136,6 @@ def run(playwright: Playwright) -> None:
             print("--- Llegada al Checkout ---")
             _capturar_estado_ui(page, "checkout")
 
-            from playwright.sync_api import expect
             try:
                 expect(page).to_have_url(re.compile(".*checkout"), timeout=30000)
             except Exception as error:

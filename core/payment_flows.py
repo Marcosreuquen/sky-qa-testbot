@@ -25,6 +25,16 @@ from core.helpers import (
 # HELPERS DE PAGO
 # ==========================================
 
+def _prefill_contacto(page):
+    """Rellena nombre/apellido/email del pasajero en formularios de pasarela (best-effort)."""
+    try:
+        page.locator("div").filter(has_text=re.compile(r"^Nombre$")).last.locator("input.input").fill(state.CFG["pasajero"]["nombre"])
+        page.locator("div").filter(has_text=re.compile(r"^Apellido$")).last.locator("input.input").fill(state.CFG["pasajero"]["apellido"])
+        page.locator("div").filter(has_text="Correo electrónico").last.locator("input.input").fill(state.CFG["pasajero"]["email"])
+    except Exception as e:
+        print(f"⚠️ Pre-fill contacto: {e}")
+
+
 def _buscar_iframe_mp(page, iframe_name):
     """Busca un iframe de Mercado Pago secure-fields por su atributo name."""
     print(f"   🔍 Buscando iframe '{iframe_name}'...")
@@ -52,7 +62,7 @@ def _buscar_campo_tarjeta(page):
         for frame in page.frames:
             try:
                 candidato = frame.get_by_placeholder(re.compile(r"Número de Tarjeta|Card Number|Número do Cartão", re.IGNORECASE))
-                if candidato.count() > 0 and candidato.is_visible():
+                if candidato.is_visible():
                     input_tarjeta = candidato
                     break
             except Exception:
@@ -102,13 +112,7 @@ def _pagar_niubiz(page):
     print("Esperando animación del formulario...")
     page.wait_for_timeout(5000)
 
-    # Pre-llenado datos contacto
-    try:
-        page.locator("div").filter(has_text=re.compile(r"^Nombre$")).last.locator("input.input").fill(state.CFG["pasajero"]["nombre"])
-        page.locator("div").filter(has_text=re.compile(r"^Apellido$")).last.locator("input.input").fill(state.CFG["pasajero"]["apellido"])
-        page.locator("div").filter(has_text="Correo electrónico").last.locator("input.input").fill(state.CFG["pasajero"]["email"])
-    except Exception:
-        pass
+    _prefill_contacto(page)
 
     input_tarjeta = _buscar_campo_tarjeta(page)
     if not input_tarjeta:
@@ -238,13 +242,7 @@ def _pagar_mercadopago(page):
     print("Esperando formulario Mercado Pago...")
     page.wait_for_timeout(5000)
 
-    # Pre-llenado datos contacto en SKY
-    try:
-        page.locator("div").filter(has_text=re.compile(r"^Nombre$")).last.locator("input.input").fill(state.CFG["pasajero"]["nombre"])
-        page.locator("div").filter(has_text=re.compile(r"^Apellido$")).last.locator("input.input").fill(state.CFG["pasajero"]["apellido"])
-        page.locator("div").filter(has_text="Correo electrónico").last.locator("input.input").fill(state.CFG["pasajero"]["email"])
-    except Exception as e:
-        print(f"⚠️ Pre-fill contact data MP: {e}")
+    _prefill_contacto(page)
 
     # ── Paso 2: Llenar formulario Mercado Pago ──
     print("💳 Llenando formulario Mercado Pago...")
@@ -352,13 +350,7 @@ def _pagar_cielo(page):
     print("Esperando formulario Cielo...")
     page.wait_for_timeout(5000)
 
-    # Pre-llenado datos contacto
-    try:
-        page.locator("div").filter(has_text=re.compile(r"^Nombre$")).last.locator("input.input").fill(state.CFG["pasajero"]["nombre"])
-        page.locator("div").filter(has_text=re.compile(r"^Apellido$")).last.locator("input.input").fill(state.CFG["pasajero"]["apellido"])
-        page.locator("div").filter(has_text="Correo electrónico").last.locator("input.input").fill(state.CFG["pasajero"]["email"])
-    except Exception as e:
-        print(f"⚠️ Pre-fill contact data Cielo: {e}")
+    _prefill_contacto(page)
 
     input_tarjeta = _buscar_campo_tarjeta(page)
     if not input_tarjeta:

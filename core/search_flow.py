@@ -9,7 +9,7 @@ Flujo de búsqueda de vuelo:
 """
 
 import re
-from datetime import datetime
+import time
 
 import core.state as state
 from core.helpers import (
@@ -30,9 +30,9 @@ from core.helpers import (
 
 def _esperar_home_lista(page, timeout_ms=45000):
     """Espera a que el flight-box esté listo para interacción."""
-    inicio = datetime.now()
+    deadline = time.monotonic() + timeout_ms / 1000
     ultimo_error = None
-    while (datetime.now() - inicio).total_seconds() * 1000 < timeout_ms:
+    while time.monotonic() < deadline:
         try:
             origen = _buscar_selector_visible(
                 page,

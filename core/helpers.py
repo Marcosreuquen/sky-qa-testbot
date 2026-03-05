@@ -110,7 +110,7 @@ def _normalizar_texto(texto):
     return " ".join((texto or "").split())
 
 
-def _listar_textos_visibles(locator, limite=25):
+def _listar_valores_visibles(locator, extractor, limite=25):
     valores = []
     try:
         cantidad = min(locator.count(), limite)
@@ -122,32 +122,20 @@ def _listar_textos_visibles(locator, limite=25):
         try:
             if not item.is_visible():
                 continue
-            texto = _normalizar_texto(item.inner_text())
-            if texto and texto not in valores:
-                valores.append(texto)
+            valor = _normalizar_texto(extractor(item))
+            if valor and valor not in valores:
+                valores.append(valor)
         except Exception:
             continue
     return valores
+
+
+def _listar_textos_visibles(locator, limite=25):
+    return _listar_valores_visibles(locator, lambda item: item.inner_text(), limite)
 
 
 def _listar_aria_labels(locator, limite=25):
-    valores = []
-    try:
-        cantidad = min(locator.count(), limite)
-    except Exception:
-        return valores
-
-    for indice in range(cantidad):
-        item = locator.nth(indice)
-        try:
-            if not item.is_visible():
-                continue
-            label = _normalizar_texto(item.get_attribute("aria-label"))
-            if label and label not in valores:
-                valores.append(label)
-        except Exception:
-            continue
-    return valores
+    return _listar_valores_visibles(locator, lambda item: item.get_attribute("aria-label"), limite)
 
 
 def _buscar_visible(locator):
@@ -249,13 +237,12 @@ def _click_ultimo_texto_visible(locator, force=False):
     try:
         for indice in range(locator.count() - 1, -1, -1):
             item = locator.nth(indice)
-            if not item.is_visible():
-                continue
-            item.scroll_into_view_if_needed()
-            item.click(force=force)
-            return True
+            if item.is_visible():
+                item.scroll_into_view_if_needed()
+                item.click(force=force)
+                return True
     except Exception:
-        return False
+        pass
     return False
 
 

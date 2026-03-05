@@ -4,34 +4,41 @@ Backlog de limpieza técnica y glosario corto para reducir ambigüedad entre age
 
 ## 1) Pending (priorizado)
 
-## P0 (alta prioridad)
+## P0 (alta prioridad — mayor impacto en eficiencia de agentes IA)
 
-- Unificar logs de `test_sky.py` en eventos estables (evitar mensajes duplicados por etapa).
-  - Impacto: menor ruido y menos tokens en debugging.
-- Extraer helpers de CDP/session a módulo separado (`core/browser_session.py`).
-  - Impacto: menor acoplamiento entre navegación y conexión.
-- Cubrir regresiones críticas con smoke automatizable por script único.
-  - Impacto: detectar quiebres de flujo antes de merge.
+- **Dividir `test_sky.py` (~1900 líneas) en módulos**:
+  - `core/search_flow.py` — búsqueda, tipo viaje, fechas, pasajeros
+  - `core/passenger_flow.py` — datos de pasajero, avance a checkout
+  - `core/payment_flows.py` — `_pagar_*` + `PAYMENT_DISPATCH`
+  - `core/selectors.py` — constantes de selectores CSS/texto
+  - `core/browser_session.py` — CDP, sesión, contexto Playwright
+  - **Por qué es P0**: un agente hoy lee ~1900 líneas por tarea. Con módulos lee ~200. Mayor ROI de tokens del proyecto.
+  - Riesgo: refactor grande — validar todos los smokes post-split.
+
+- **Centralizar selectores CSS/texto en `core/selectors.py`**:
+  - Hoy están inline dispersos. Cuando cambia el frontend de SKY, un agente hace grep de todo el archivo.
+  - Con archivo central: el cambio es una línea.
 
 ## P1 (media prioridad)
 
-- Dividir `test_sky.py` por dominios:
-  - `core/search_flow.py`
-  - `core/passenger_flow.py`
-  - `core/payment_flows.py`
-  - `core/selectors.py`
-  - Impacto: edición localizada, menos contexto en cada tarea.
-- Centralizar selectores frecuentes en constantes versionadas.
-  - Impacto: menor costo al adaptar cambios de frontend SKY.
-- Añadir tests unitarios de `cli.py` (parsing y precedence).
-  - Impacto: evitar regressions de flags sin ejecutar browser completo.
+- Unificar logs de `test_sky.py` en eventos estables.
+  - Impacto: menor ruido y menos tokens en debugging.
+- Añadir tests unitarios de `cli.py` (parsing y precedence de flags).
+  - `make check` ya valida contrato básico; ampliar con edge cases (market inválido, ambiente default, etc.).
 
 ## P2 (baja prioridad)
 
-- Migrar persistencia GUI a schema versionado.
-  - Impacto: upgrades seguros de `.sky_gui_settings.json`.
-- Crear comando `make doctor` para validar entorno (tkinter, playwright, python, CDP reachability).
+- Migrar persistencia GUI a schema versionado (versión en `.sky_gui_settings.json`).
+  - Impacto: upgrades seguros sin romper ajustes guardados.
+- Crear comando `make doctor` para validar entorno (tkinter, playwright, python, CDP).
   - Impacto: onboarding más rápido.
+
+## ✅ Completado (referencia)
+
+- `PAYMENT_DISPATCH` dict en `test_sky.py` — reemplaza if/elif. Para agregar market: 1 línea en el dict.
+- `validate-ambientes`, `smoke-tsts`, `smoke-stage` en `Makefile`.
+- Schema de `CFG` documentado en docstring de `cli.py::aplicar_args()`.
+- `make check` valida contrato CLI además de compilación.
 
 ## 2) Redundancia detectada
 

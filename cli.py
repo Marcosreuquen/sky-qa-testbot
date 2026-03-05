@@ -247,7 +247,33 @@ def aplicar_args(args):
     """
     Aplica los argumentos CLI sobre los valores por defecto de config.
     El --market define automáticamente: URL, medio de pago y datos de tarjeta.
-    Retorna un diccionario con toda la configuración resuelta.
+    El --ambiente define el subdominio de la URL (qa/tsts/stage).
+    Retorna CFG: diccionario con toda la configuración resuelta.
+
+    Schema de CFG (keys disponibles en test_sky.py):
+        market          str   "PE"|"CL"|"AR"|"BR"
+        ambiente        str   "qa"|"tsts"|"stage"
+        medio_pago      str   "Niubiz"|"Webpay"|"Mercado Pago"|"Cielo"
+        url             str   URL base del home market + ambiente
+        pausa           int   ms de pausa de seguridad entre pasos
+        slow_mo         int   ms de slow_mo de Playwright
+        espera_final_segundos int
+        usar_chrome_existente bool
+        cdp_url         str
+        cdp_reutilizar_primera_pestana bool
+        headless        bool
+        modo_exploracion bool
+        solo_exploracion bool
+        origen          str
+        destino         str
+        dias            int
+        tipo_viaje      str   "ONE_WAY"|"ROUND_TRIP"
+        dias_retorno    int
+        pasajeros       dict  {adultos, ninos, infantes}
+        pasajeros_lista list[dict]  lista completa de pasajeros
+        checkpoint      str|None
+        pasajero        dict  primer pasajero (alias de pasajeros_lista[0])
+        tarjeta         dict  {numero, fecha, cvv, ...campos extra por market}
     """
     from config import (
         TIEMPO_PAUSA_SEGURIDAD,

@@ -1411,14 +1411,9 @@ def run(playwright: Playwright) -> None:
             print(f"--- Iniciando Pago: {medio} ({market}) ---")
 
             try:
-                if market == "PE":
-                    _pagar_niubiz(page)
-                elif market == "CL":
-                    _pagar_webpay(page)
-                elif market == "AR":
-                    _pagar_mercadopago(page)
-                elif market == "BR":
-                    _pagar_cielo(page)
+                pagar_fn = PAYMENT_DISPATCH.get(market)
+                if pagar_fn:
+                    pagar_fn(page)
                 else:
                     print(f"❌ Market '{market}' no tiene flujo de pago implementado.")
             except Exception as error:
@@ -1483,6 +1478,12 @@ def run(playwright: Playwright) -> None:
 # ==========================================
 # 💳 FLUJOS DE PAGO POR MARKET
 # ==========================================
+# Para agregar un market: 1) implementar _pagar_<nombre>(page) abajo,
+# 2) agregar entrada en PAYMENT_DISPATCH, 3) actualizar config/pago.py.
+# No tocar run() para el dispatch.
+
+PAYMENT_DISPATCH: dict = {}  # poblado al final del módulo (forward refs)
+
 
 def _pagar_niubiz(page):
     """Perú — Niubiz"""
@@ -1885,6 +1886,14 @@ def _finalizar_compra(page, boton_texto="Ir a pagar"):
     btn_pagar.wait_for(state="visible", timeout=5000)
     btn_pagar.click()
     print("🎉 ¡CLICK EN PAGAR REALIZADO!")
+
+# Mapa market → función de pago (fuente de verdad para dispatch)
+PAYMENT_DISPATCH = {
+    "PE": _pagar_niubiz,
+    "CL": _pagar_webpay,
+    "AR": _pagar_mercadopago,
+    "BR": _pagar_cielo,
+}
 
 try:
     with sync_playwright() as playwright:

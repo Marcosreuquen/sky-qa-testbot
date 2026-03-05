@@ -4,6 +4,7 @@ from datetime import date
 CHECKPOINTS_VALIDOS = ["BUSQUEDA", "SELECCION_TARIFA", "DATOS_PASAJERO", "CHECKOUT", "PAGO"]
 MARKETS_VALIDOS = ["CL", "PE", "AR", "BR"]
 TIPOS_VIAJE_VALIDOS = ["ONE_WAY", "ROUND_TRIP"]
+AMBIENTES_VALIDOS = ["qa", "tsts", "stage"]
 
 
 def _int_positivo(value):
@@ -127,6 +128,13 @@ Ejemplos:
         choices=MARKETS_VALIDOS,
         default=None,
         help="Home market (CL/PE/AR/BR). Define URL, medio de pago y datos de tarjeta automáticamente",
+    )
+    grupo_market.add_argument(
+        "--ambiente",
+        type=str,
+        choices=AMBIENTES_VALIDOS,
+        default=None,
+        help="Ambiente a usar: qa (por defecto), tsts o stage",
     )
 
     # --- 1. Ruta y Tiempos ---
@@ -256,14 +264,17 @@ def aplicar_args(args):
         CANTIDAD_INFANTES,
         PASAJERO,
         HOME_MARKET,
-        URLS_POR_MARKET,
+        AMBIENTE,
         MEDIO_PAGO_POR_MARKET,
         TARJETA_POR_MARKET,
         CHECKPOINT,
+        get_urls_por_market,
     )
 
-    # Resolver market
+    # Resolver market y ambiente
     market = args.market or HOME_MARKET
+    ambiente = args.ambiente or AMBIENTE
+    urls_por_market = get_urls_por_market(ambiente)
     tarjeta_market = TARJETA_POR_MARKET[market]
     tipo_viaje = _normalizar_tipo_viaje(args.tipo_viaje or TIPO_VIAJE)
 
@@ -298,8 +309,9 @@ def aplicar_args(args):
 
     cfg = {
         "market": market,
+        "ambiente": ambiente,
         "medio_pago": MEDIO_PAGO_POR_MARKET[market],
-        "url": args.url or URLS_POR_MARKET[market],
+        "url": args.url or urls_por_market[market],
         "pausa": args.pausa if args.pausa is not None else TIEMPO_PAUSA_SEGURIDAD,
         "slow_mo": args.slow_mo if args.slow_mo is not None else VELOCIDAD_VISUAL,
         "espera_final_segundos": (

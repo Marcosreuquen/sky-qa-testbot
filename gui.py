@@ -20,6 +20,7 @@ from config import (
     DIAS_RETORNO_DESDE_IDA,
     ESPERA_FINAL_SEGUNDOS,
     HOME_MARKET,
+    AMBIENTE,
     PASAJERO,
     TARJETA_POR_MARKET,
     TIEMPO_PAUSA_SEGURIDAD,
@@ -59,6 +60,13 @@ CHECKPOINT_LABEL_TO_CODE = {
     "Pausar en pago": "PAGO",
 }
 CHECKPOINT_CODE_TO_LABEL = {v: k for k, v in CHECKPOINT_LABEL_TO_CODE.items()}
+
+AMBIENTE_LABEL_TO_CODE = {
+    "QA": "qa",
+    "TSTS": "tsts",
+    "Stage": "stage",
+}
+AMBIENTE_CODE_TO_LABEL = {v: k for k, v in AMBIENTE_LABEL_TO_CODE.items()}
 
 DEFAULT_PRESET_NAME = "Inicial: Solo ida, Perú, 1 adulto"
 CUSTOM_PRESET_NAME = "Personalizado"
@@ -144,6 +152,7 @@ class SkyBotGUI:
 
         self.preset_var = tk.StringVar(value=DEFAULT_PRESET_NAME)
         self.market_var = tk.StringVar(value="Perú")
+        self.ambiente_var = tk.StringVar(value=AMBIENTE_CODE_TO_LABEL.get(AMBIENTE, "QA"))
         self.tipo_viaje_var = tk.StringVar(value="Solo ida")
         self.origen_var = tk.StringVar(value=VUELO_ORIGEN)
         self.destino_var = tk.StringVar(value=VUELO_DESTINO)
@@ -228,6 +237,7 @@ class SkyBotGUI:
     def _estado_actual_para_preset(self):
         return {
             "market": self.market_var.get(),
+            "ambiente": self.ambiente_var.get(),
             "tipo_viaje": self.tipo_viaje_var.get(),
             "origen": self.origen_var.get(),
             "destino": self.destino_var.get(),
@@ -271,6 +281,7 @@ class SkyBotGUI:
     def _registrar_tracking_cambios_preset(self):
         vars_a_trackear = [
             self.market_var,
+            self.ambiente_var,
             self.tipo_viaje_var,
             self.origen_var,
             self.destino_var,
@@ -471,23 +482,27 @@ class SkyBotGUI:
         flujo = ttk.LabelFrame(principal_layout, text="Flujo")
         flujo.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
         combo_market = self._add_combo(flujo, "País", self.market_var, list(MARKET_LABEL_TO_CODE.keys()), row=0)
-        combo_tipo_viaje = self._add_combo(flujo, "Tipo de viaje", self.tipo_viaje_var, list(TRIP_LABEL_TO_CODE.keys()), row=1)
+        combo_ambiente = self._add_combo(flujo, "Ambiente", self.ambiente_var, list(AMBIENTE_LABEL_TO_CODE.keys()), row=1)
+        combo_tipo_viaje = self._add_combo(flujo, "Tipo de viaje", self.tipo_viaje_var, list(TRIP_LABEL_TO_CODE.keys()), row=2)
         combo_checkpoint = self._add_combo(
             flujo,
             "Checkpoint",
             self.checkpoint_var,
             list(CHECKPOINT_LABEL_TO_CODE.keys()),
-            row=2,
+            row=3,
         )
         tooltip_market = "País del sitio y medio de pago a usar (Perú, Argentina, Chile o Brasil)."
+        tooltip_ambiente = "Ambiente a testear: QA (initial-sale-qa), TSTS (initial-sale-tsts) o Stage (initial-sale-stage)."
         tooltip_tipo_viaje = "Solo ida o ida y vuelta."
         tooltip_checkpoint = "Punto donde el flujo se pausa para inspección manual."
         self._add_tooltip(combo_market, tooltip_market)
+        self._add_tooltip(combo_ambiente, tooltip_ambiente)
         self._add_tooltip(combo_tipo_viaje, tooltip_tipo_viaje)
         self._add_tooltip(combo_checkpoint, tooltip_checkpoint)
         self._add_help_icon_grid(flujo, row=0, column=2, tooltip_text=tooltip_market)
-        self._add_help_icon_grid(flujo, row=1, column=2, tooltip_text=tooltip_tipo_viaje)
-        self._add_help_icon_grid(flujo, row=2, column=2, tooltip_text=tooltip_checkpoint)
+        self._add_help_icon_grid(flujo, row=1, column=2, tooltip_text=tooltip_ambiente)
+        self._add_help_icon_grid(flujo, row=2, column=2, tooltip_text=tooltip_tipo_viaje)
+        self._add_help_icon_grid(flujo, row=3, column=2, tooltip_text=tooltip_checkpoint)
 
         viaje = ttk.LabelFrame(principal_layout, text="Vuelo y pasajeros")
         viaje.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
@@ -925,6 +940,18 @@ class SkyBotGUI:
             return value
         return MARKET_CODE_TO_LABEL.get(value, "Perú")
 
+    def _ambiente_code_from_label(self, value):
+        if value in AMBIENTE_LABEL_TO_CODE:
+            return AMBIENTE_LABEL_TO_CODE[value]
+        if value in AMBIENTE_CODE_TO_LABEL:
+            return value
+        return AMBIENTE
+
+    def _ambiente_label_from_value(self, value):
+        if value in AMBIENTE_LABEL_TO_CODE:
+            return value
+        return AMBIENTE_CODE_TO_LABEL.get(value, "QA")
+
     def _trip_code_from_label(self, value):
         if value in TRIP_LABEL_TO_CODE:
             return TRIP_LABEL_TO_CODE[value]
@@ -954,6 +981,7 @@ class SkyBotGUI:
             "preset": self.preset_var.get(),
             "presets_guardados": self._serializar_presets(),
             "market": self.market_var.get(),
+            "ambiente": self.ambiente_var.get(),
             "tipo_viaje": self.tipo_viaje_var.get(),
             "origen": self.origen_var.get(),
             "destino": self.destino_var.get(),
@@ -1012,6 +1040,7 @@ class SkyBotGUI:
 
         _set_str(self.preset_var, "preset")
         _set_str(self.market_var, "market")
+        _set_str(self.ambiente_var, "ambiente")
         _set_str(self.tipo_viaje_var, "tipo_viaje")
         _set_str(self.origen_var, "origen")
         _set_str(self.destino_var, "destino")
@@ -1048,6 +1077,7 @@ class SkyBotGUI:
         if self.preset_var.get() not in self.presets:
             self.preset_var.set(CUSTOM_PRESET_NAME)
         self.market_var.set(self._market_label_from_value(self.market_var.get()))
+        self.ambiente_var.set(self._ambiente_label_from_value(self.ambiente_var.get()))
         self.tipo_viaje_var.set(self._trip_label_from_value(self.tipo_viaje_var.get()))
         self.checkpoint_var.set(self._checkpoint_label_from_value(self.checkpoint_var.get()))
         if self.genero_override_var.get() not in {"", "Masculino", "Femenino"}:
@@ -1094,6 +1124,7 @@ class SkyBotGUI:
         try:
             self.preset_var.set(DEFAULT_PRESET_NAME)
             self.market_var.set("Perú")
+            self.ambiente_var.set(AMBIENTE_CODE_TO_LABEL.get(AMBIENTE, "QA"))
             self.tipo_viaje_var.set("Solo ida")
             self.origen_var.set(VUELO_ORIGEN)
             self.destino_var.set(VUELO_DESTINO)
@@ -1273,8 +1304,10 @@ class SkyBotGUI:
         tipo_viaje_code = self._trip_code_from_label(self.tipo_viaje_var.get())
         checkpoint_code = self._checkpoint_code_from_label(self.checkpoint_var.get())
 
+        ambiente_code = self._ambiente_code_from_label(self.ambiente_var.get())
         cmd = [PYTHON_EXEC, "-u", str(PROJECT_ROOT / "test_sky.py")]
         cmd.extend(["--market", market_code])
+        cmd.extend(["--ambiente", ambiente_code])
         cmd.extend(["--tipo-viaje", tipo_viaje_code])
         origen = self.origen_var.get().strip()
         destino = self.destino_var.get().strip()

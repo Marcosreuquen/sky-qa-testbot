@@ -13,9 +13,12 @@ from config.vuelo import (
 from config.pasajero import PASAJERO
 from config.pago import (
     HOME_MARKET,
+    AMBIENTE,
+    AMBIENTES_DISPONIBLES,
     URLS_POR_MARKET,
     MEDIO_PAGO_POR_MARKET,
     TARJETA_POR_MARKET,
+    get_urls_por_market,
 )
 from config.checkpoint import CHECKPOINT
 
@@ -34,8 +37,11 @@ __all__ = [
     "CANTIDAD_INFANTES",
     "PASAJERO",
     "HOME_MARKET",
+    "AMBIENTE",
+    "AMBIENTES_DISPONIBLES",
     "URLS_POR_MARKET",
     "MEDIO_PAGO_POR_MARKET",
     "TARJETA_POR_MARKET",
+    "get_urls_por_market",
     "CHECKPOINT",
 ]

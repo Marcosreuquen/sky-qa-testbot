@@ -5,13 +5,30 @@
 # Home market por defecto
 HOME_MARKET = "PE"
 
-# URLs por market
-URLS_POR_MARKET = {
-    "CL": "https://initial-sale-qa.skyairline.com/es/chile",
-    "PE": "https://initial-sale-qa.skyairline.com/es/peru",
-    "AR": "https://initial-sale-qa.skyairline.com/es/argentina",
-    "BR": "https://initial-sale-qa.skyairline.com/pt/brasil",
+# Ambiente por defecto y ambientes disponibles
+AMBIENTE = "qa"
+AMBIENTES_DISPONIBLES = {
+    "qa": "initial-sale-qa",
+    "tsts": "initial-sale-tsts",
+    "stage": "initial-sale-stage",
 }
+
+# URLs base por market (template con placeholder {env})
+_URLS_BASE = {
+    "CL": "https://{env}.skyairline.com/es/chile",
+    "PE": "https://{env}.skyairline.com/es/peru",
+    "AR": "https://{env}.skyairline.com/es/argentina",
+    "BR": "https://{env}.skyairline.com/pt/brasil",
+}
+
+
+def get_urls_por_market(ambiente="qa"):
+    env = AMBIENTES_DISPONIBLES.get(ambiente, AMBIENTES_DISPONIBLES["qa"])
+    return {market: url.format(env=env) for market, url in _URLS_BASE.items()}
+
+
+# URLs por market (ambiente por defecto)
+URLS_POR_MARKET = get_urls_por_market(AMBIENTE)
 
 # Medio de pago asociado a cada market segun https://docs.google.com/document/d/1wIDHOWCInWtTeQo7H7l4cW3sp1MUXK5WQqeqBIh-p7Y/edit?tab=t.0
 MEDIO_PAGO_POR_MARKET = {

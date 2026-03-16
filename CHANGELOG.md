@@ -23,6 +23,10 @@ Formato recomendado por entrada:
 - Navegación post-tarifa endurecida para variantes visuales nuevas en `seats` y `additional-services` de QA/Stage.
 - Checkpoints en modo visual ahora reanudan la ejecución detectando la etapa actual en lugar de cortar siempre el flujo.
 - Checkout de pago endurecido para variantes donde las pasarelas quedan detrás del acordeón `Más medios de pago`.
+- GUI con pausa cooperativa (`Pausar para edición` / `Continuar`) y recuperación de errores en runtime.
+- Nuevos checkpoints: `ANCILLARIES` y `LLEGADA_DATOS_PASAJERO`.
+- Búsqueda endurecida para no avanzar a extras mientras la etapa siga en `BUSQUEDA`.
+- Selección de fechas en Stage endurecida para el datepicker de dos meses y validación real contra el valor del input.
 
 ### Added
 - Documentación AI-first:

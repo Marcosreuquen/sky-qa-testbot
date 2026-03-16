@@ -160,6 +160,8 @@ CHECKPOINT = None  # Sin pausas intermedias (ejecuta todo el flujo)
 **Opciones disponibles:**
 - `"BUSQUEDA"` - Pausa después de buscar el vuelo
 - `"SELECCION_TARIFA"` - Pausa después de seleccionar vuelo y tarifa
+- `"ANCILLARIES"` - Pausa al llegar a asientos/servicios adicionales
+- `"LLEGADA_DATOS_PASAJERO"` - Pausa apenas entra a `passenger-detail`
 - `"DATOS_PASAJERO"` - Pausa después de llenar datos del pasajero
 - `"CHECKOUT"` - Pausa al llegar al checkout
 - `"PAGO"` - Pausa después de llenar datos de pago (antes de clickear "Ir a pagar")
@@ -199,11 +201,13 @@ Desde la interfaz puedes:
 - Elegir un caso desde el dropdown (se aplica automáticamente)
 - Crear, renombrar y eliminar casos personalizados
 - Ejecutar y detener el flujo con botones
+- Pausar para edición manual y continuar sin reiniciar la ejecución
 - Ver logs en tiempo real
 - Ajustar la espera final (por defecto 600s = 10 minutos)
 - Usar tu Chrome abierto por CDP (sin abrir una instancia nueva)
 - Guardar automáticamente tus últimos ajustes para próximas ejecuciones
 - Configurar overrides de pasajero/pagador y tarjeta desde la propia UI
+- Corregir errores recuperables durante runtime y reanudar desde la etapa detectada
 - Caso inicial inmutable: **Solo ida, PE, 1 adulto, flujo completo (sin checkpoint)**
 
 ### Usar Chrome ya abierto (CDP)

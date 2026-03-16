@@ -30,8 +30,9 @@ Este documento resume la arquitectura actual para cambios rápidos y seguros.
 ## 3. Contratos internos importantes
 
 - `CFG` es el contrato principal entre `cli.py` y `test_sky.py`.
-- `CHECKPOINT` soportado: `BUSQUEDA`, `SELECCION_TARIFA`, `DATOS_PASAJERO`, `CHECKOUT`, `PAGO`, o `None`.
+- `CHECKPOINT` soportado: `BUSQUEDA`, `SELECCION_TARIFA`, `ANCILLARIES`, `LLEGADA_DATOS_PASAJERO`, `DATOS_PASAJERO`, `CHECKOUT`, `PAGO`, o `None`.
 - GUI no ejecuta lógica de negocio web; solo arma flags y lanza proceso.
+- La GUI puede coordinar pausa/reanudación con el proceso usando `--control-dir` y archivos en `.bot_runtime/`.
 
 ## 4. Persistencia local
 

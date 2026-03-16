@@ -7,6 +7,25 @@ Objetivo:
 - facilitar revisiones de causa raíz,
 - priorizar mejoras que impactan fuerte la experiencia de uso.
 
+## 2026-03-16
+
+### P0 · Home de Stage puede quedar parcialmente hidratada en búsqueda
+
+- En `CL stage` se observó que origen/destino/fecha podían existir en DOM pero no estar realmente aplicados al buscador todavía.
+- El datepicker de dos meses permitía clickear el día correcto, pero el bot podía confundir texto visible del calendario con valor ya aplicado en el input.
+- Impacto:
+  - la búsqueda seguía en `BUSQUEDA`,
+  - el usuario veía el campo de fecha vacío,
+  - el flujo parecía continuar “sin elegir nada” y podía derivar en loops posteriores.
+- Fix táctico aplicado:
+  - validación de fecha endurecida contra el valor real del input,
+  - selección del día anclada al `vc-pane`/`vc-title` correcto del calendario,
+  - corte explícito para no avanzar a extras si la etapa sigue en `BUSQUEDA`.
+- Causa raíz sugerida:
+  - esperar señales semánticas de home hidratada por campo, no sólo por presencia de wrappers,
+- separar en código “calendario abierto” de “fecha aplicada”,
+- agregar smoke fijo de Stage para `origen -> destino -> fecha -> búsqueda`.
+
 ## 2026-03-13
 
 ### P0 · Pantalla `seats` cambia entre QA y Stage

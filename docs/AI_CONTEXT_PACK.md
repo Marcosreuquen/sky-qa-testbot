@@ -44,6 +44,8 @@ Home -> búsqueda -> selección vuelo/tarifa -> extras -> pasajeros -> checkout 
 Checkpoints:
 - `BUSQUEDA`
 - `SELECCION_TARIFA`
+- `ANCILLARIES`
+- `LLEGADA_DATOS_PASAJERO`
 - `DATOS_PASAJERO`
 - `CHECKOUT`
 - `PAGO`
@@ -53,6 +55,7 @@ Checkpoints:
 - Cambio en selectores de UI de SKY.
 - Diferencias de comportamiento entre CDP y navegador lanzado por Playwright.
 - Popups/modales (login, cookies, overlays) tapando botones.
+- Frontend parcialmente hidratado en home (ciudades/fecha visibles pero no realmente aplicadas).
 - Flujos de pago por market con estructuras distintas.
 
 ## 6) Validación mínima

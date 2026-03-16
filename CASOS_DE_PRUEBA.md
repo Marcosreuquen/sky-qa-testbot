@@ -57,13 +57,24 @@ venv/bin/python -u test_sky.py --market PE --tipo-viaje ROUND_TRIP --adultos 2 -
 venv/bin/python -u test_sky.py --market PE --tipo-viaje ROUND_TRIP --adultos 1 --ninos 0 --infantes 0 --modo-exploracion --checkpoint CHECKOUT
 ```
 
+## Smoke útil para Stage (fecha+búsqueda)
+
+### Valida que origen/destino/fecha avancen correctamente antes de tarifa
+```bash
+venv/bin/python -u test_sky.py --market CL --ambiente stage --tipo-viaje ONE_WAY --origen Santiago --destino "Buenos Aires" --dias 16 --adultos 1 --ninos 0 --infantes 0 --checkpoint BUSQUEDA
+```
+
 ## Flags que más se tocan
 - `--market PE|CL|AR|BR`
+- `--ambiente qa|tsts|stage`
 - `--tipo-viaje ONE_WAY|ROUND_TRIP`
 - `--adultos N`
 - `--ninos N`
 - `--infantes N`
-- `--checkpoint BUSQUEDA|SELECCION_TARIFA|DATOS_PASAJERO|CHECKOUT|PAGO`
+- `--checkpoint BUSQUEDA|SELECCION_TARIFA|ANCILLARIES|LLEGADA_DATOS_PASAJERO|DATOS_PASAJERO|CHECKOUT|PAGO`
+- `--seleccion-asiento SKIP|AUTO`
+- `--maletas-cabina N`
+- `--maletas-bodega N`
 - `--modo-exploracion`
 
 Nota: `--dias` menor a 16 muestra advertencia antifraude, pero respeta el valor indicado.

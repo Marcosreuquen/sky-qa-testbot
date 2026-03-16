@@ -32,6 +32,18 @@ Esperado:
 - completa datos de pasajero,
 - llega a checkpoint `CHECKOUT`.
 
+## 3b. Flujo CL Stage hasta búsqueda correcta
+
+```bash
+venv/bin/python -u test_sky.py --market CL --ambiente stage --tipo-viaje ONE_WAY --origen Santiago --destino "Buenos Aires" --dias 16 --adultos 1 --ninos 0 --infantes 0 --checkpoint BUSQUEDA
+```
+
+Esperado:
+- origen y destino quedan aplicados,
+- la fecha queda visible en el input,
+- la URL de resultados incluye `departureDate=...`,
+- no cae en loop de `Saltando Extras` mientras sigue en `BUSQUEDA`.
+
 ## 4. GUI base
 
 Comando:

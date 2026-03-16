@@ -10,6 +10,7 @@ Orden sugerido de lectura para contributors y agentes:
 6. `ARCHITECTURE.md`
 7. `CHANGE_PLAYBOOK.md`
 8. `COMMIT_PROTOCOL.md`
+9. `PRODUCT_UX_REVIEW.md` (si se quiere revisar deuda/friccion de la pagina en si)
 
 Objetivo:
 - reducir tiempo de onboarding,

@@ -10,6 +10,16 @@ Backlog de limpieza técnica y glosario corto para reducir ambigüedad entre age
 
 ## P0 — Alta prioridad
 
+- **Formalizar validadores semánticos de “estado aplicado” por campo** · P0 · Dificultad: Media · Impacto: Alto
+  - En Stage apareció un falso positivo donde la fecha parecía aplicada por texto visible del calendario, pero el input seguía vacío.
+  - El mismo patrón puede repetirse en origen, destino, pasajeros y ancillaries.
+  - Solución: helpers explícitos por campo (`origen_aplicado`, `destino_aplicado`, `fecha_aplicada`, `pasajeros_aplicados`) que validen contra el valor real del control y no contra DOM incidental.
+
+- **Agregar smoke automatizado fijo para `CL stage` (`origen -> destino -> fecha -> búsqueda`)** · P0 · Dificultad: Baja · Impacto: Alto
+  - El flujo de Stage hoy es suficientemente distinto como para merecer una regresión dedicada.
+  - Sin este smoke, cambios en home/datepicker pueden volver a romper búsqueda sin detectarse temprano.
+  - Solución: script/comando estable en `scripts/` o `Makefile` y referencia en `docs/REGRESSION_MATRIX.md`.
+
 - **Centralizar selectores CSS/texto en `core/selectors.py`** · P0 · Dificultad: Media · Impacto: Alto
   - Selectores dispersos en `search_flow.py`, `passenger_flow.py`, `payment_flows.py`. Cuando cambia el frontend de SKY un agente debe grep todo el código.
   - Con archivo central: el cambio es 1 línea. Los módulos importan desde allí.
@@ -23,6 +33,21 @@ Backlog de limpieza técnica y glosario corto para reducir ambigüedad entre age
 ---
 
 ## P1 — Media prioridad
+
+- **Separar módulo de home/date-picker de `core/search_flow.py`** · P1 · Dificultad: Media · Impacto: Alto
+  - `search_flow.py` absorbió mucha lógica de hidratación, ciudades, calendario y transición a resultados.
+  - Hoy arreglar una regresión de búsqueda obliga a tocar un archivo demasiado grande y con demasiadas responsabilidades.
+  - Solución: extraer `home_search.py` / `date_picker.py` o equivalente, manteniendo `search_flow.py` como orquestador.
+
+- **Distinguir claramente pruebas aisladas vs sesiones CDP compartidas** · P1 · Dificultad: Baja · Impacto: Medio
+  - Varias iteraciones recientes mezclaron diagnóstico automático con Chrome compartido y generaron ruido de pestañas/sesiones.
+  - Solución: documentar y automatizar dos modos estables:
+    `smoke aislado` para regresión y `CDP/manual` para edición y debugging visual.
+
+- **Instrumentar tiempos de hidratación por etapa crítica** · P1 · Dificultad: Media · Impacto: Medio-Alto
+  - Home, selección de vuelo, ancillaries y checkout mostraron comportamientos intermitentes por carga tardía.
+  - Hoy se corrige con waits/reintentos, pero sin visibilidad de cuánto tarda realmente cada etapa.
+  - Solución: logs o evidencia liviana por etapa (`home_ready_ms`, `search_results_ms`, `payment_visible_ms`) para detectar regresiones de frontend.
 
 - **Unificar `_snapshot_settings` y `_estado_actual_para_preset` en `gui.py`** · P1 · Dificultad: Media · Impacto: Medio
   - `_estado_actual_para_preset` (`gui.py:237`) y `_snapshot_settings` (`gui.py:979`) serializan los mismos ~20 campos. La diferencia es que `_snapshot_settings` añade `preset` y `presets_guardados`.

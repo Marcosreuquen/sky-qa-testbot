@@ -24,6 +24,12 @@ Hoy la experiencia parece sufrir en tres dimensiones:
 En términos de UX, esto erosiona confianza. La persona usuaria puede completar el flujo,
 pero siente que la pagina no responde de forma predecible.
 
+Tambien se observa una diferencia importante entre desktop y mobile:
+
+- **mobile** presenta una home mas enfocada y lineal;
+- **desktop** expone mas estados residuales, mas ruido visual y una convivencia menos clara
+  entre formulario y mensajes de resultado/error.
+
 ## Principios de Diseño Recomendados
 
 Antes de entrar en mejoras puntuales, conviene alinear algunos principios:
@@ -41,6 +47,10 @@ Antes de entrar en mejoras puntuales, conviene alinear algunos principios:
 4. **El flujo deberia proteger de errores evitables**
    Si un dato critico no esta completo, la interfaz deberia prevenir el avance en lugar de permitir
    estados ambiguos.
+
+5. **La validacion debe ayudar, no castigar**
+   Deshabilitar un CTA sin explicacion suele ser tan confuso como permitir avanzar sin guia.
+   La mejor practica, en general, es combinar prevencion suave + feedback explicito al intento.
 
 ## Prioridad P0
 
@@ -74,7 +84,8 @@ antes de transmitir con claridad si el formulario esta realmente listo.
 
 - limpiar mensajes residuales al volver a home,
 - no mostrar validaciones en rojo hasta que haya interacción o submit,
-- deshabilitar CTA primario cuando falten dependencias críticas.
+- si el CTA esta deshabilitado, explicar exactamente por que,
+- si el CTA permite click, marcar con claridad el primer faltante al intentar avanzar.
 
 ### 2. Hacer inequívoca la confirmación de fecha
 
@@ -106,7 +117,43 @@ al campo. El sistema puede dar sensación de selección visual sin una confirmac
 - reflejar el valor elegido en el campo antes de cualquier otra transición,
 - evitar que el calendario quede abierto en un estado ambiguo.
 
-### 3. Fortalecer la selección de origen y destino
+### 3. Diseñar una estrategia de validacion mas comprensible
+
+**Problema**
+
+En formularios cortos como la home de busqueda, un CTA completamente bloqueado puede ser opaco
+si no comunica que falta. Pero un CTA siempre habilitado tambien puede generar frustracion
+si devuelve errores tardios y dispersos.
+
+**Impacto UX**
+
+- si el CTA no responde, parece roto;
+- si responde tarde y mal, parece arbitrario;
+- en ambos casos se rompe la sensacion de progreso.
+
+**Recomendacion**
+
+Adoptar un patron mixto:
+
+- prevencion en dependencias estructurales,
+- validacion visible al intento de submit,
+- feedback localizado en el primer campo que requiere accion.
+
+Aplicado a este flujo:
+
+- fecha no deberia estar realmente activa sin origen y destino confirmados,
+- `Buscar vuelo` no deberia quedar en estado ambiguo,
+- al click, si falta algo, el sistema deberia:
+  - enfocar el primer campo incompleto,
+  - marcarlo visualmente,
+  - explicar con microcopy breve que se necesita.
+
+**Mejor practica**
+
+No pensar el problema como `habilitar vs deshabilitar`, sino como:
+`como entiende la persona que falta y como lo resuelve rapido`.
+
+### 4. Fortalecer la selección de origen y destino
 
 **Problema**
 
@@ -134,7 +181,7 @@ Puede sentirse como un estado intermedio más que como una selección cerrada.
 
 ## Prioridad P1
 
-### 4. Mejorar la transición de búsqueda a resultados
+### 5. Mejorar la transición de búsqueda a resultados
 
 **Problema**
 
@@ -156,7 +203,32 @@ si no encontró disponibilidad o si ocurrió un error del sistema.
   - validación del formulario,
   - error temporal del servicio.
 
-### 5. Hacer más estable la experiencia de ancillaries y asientos
+### 6. Mejorar la escaneabilidad de resultados
+
+**Problema**
+
+La grilla/lista de resultados permite avanzar, pero la lectura comparativa no parece tan eficiente
+como podria ser. Hay bastante densidad de informacion y poca jerarquia entre lo decisivo y lo accesorio.
+
+**Impacto UX**
+
+- cuesta comparar rapidamente precio, horario, aeropuerto y trade-offs,
+- el usuario debe dedicar mas esfuerzo cognitivo a cada tarjeta,
+- la toma de decision se vuelve menos fluida.
+
+**Recomendaciones**
+
+- Reforzar jerarquia entre:
+  - horario,
+  - aeropuerto,
+  - duracion,
+  - precio final,
+  - condiciones relevantes.
+- Dar mas contexto al orden `Recomendado`: recomendado segun que criterio.
+- Hacer mas visible el cambio de fecha en el carrusel superior y su efecto en el precio.
+- Revisar si el resumen lateral realmente ayuda a decidir o compite visualmente con la lista principal.
+
+### 7. Hacer más estable la experiencia de ancillaries y asientos
 
 **Problema**
 
@@ -176,7 +248,7 @@ y cambios en CTAs.
 - Mantener visible un resumen estable de lo seleccionado antes de continuar.
 - Evitar drawers o paneles que cambian demasiado la posición de controles clave.
 
-### 6. Reducir fricción cognitiva en checkout y pago
+### 8. Reducir fricción cognitiva en checkout y pago
 
 **Problema**
 
@@ -196,9 +268,29 @@ un paso extra de descubrimiento.
 - Mejorar la relación visual entre método elegido y formulario que se despliega.
 - Evaluar si el acordeón realmente simplifica o sólo esconde complejidad.
 
+### 9. Mejorar la pantalla de procesamiento previa a checkout/pago
+
+**Problema**
+
+La pantalla de `Procesando los datos del viaje` comunica muy poco: indica que no se cierre la pantalla,
+pero no da nocion de avance, tiempo estimado ni proximo paso.
+
+**Impacto UX**
+
+- transmite espera incierta,
+- eleva ansiedad en un momento sensible del funnel,
+- hace dificil distinguir entre procesamiento normal y posible cuelgue.
+
+**Recomendaciones**
+
+- Mostrar progreso real o al menos progreso por pasos.
+- Indicar tiempo estimado o rango esperado.
+- Explicar que ocurrira a continuacion.
+- Evitar una pantalla tan vacia si la espera puede superar unos pocos segundos.
+
 ## Prioridad P2
 
-### 7. Mejorar performance percibida
+### 10. Mejorar performance percibida
 
 **Problema**
 
@@ -211,7 +303,7 @@ que la interfaz se vea “viva” pero poco estable.
 - Reducir remount innecesario de componentes críticos.
 - Usar skeletons o disabled states semánticos en lugar de controles interactuables “a medias”.
 
-### 8. Subir la barra de accesibilidad y claridad operativa
+### 11. Subir la barra de accesibilidad y claridad operativa
 
 **Recomendaciones**
 
@@ -220,22 +312,41 @@ que la interfaz se vea “viva” pero poco estable.
 - Diferenciar de forma más clara `disabled`, `loading`, `error` y `success`.
 - Revisar jerarquía visual de labels, placeholders y valores aplicados.
 
+### 12. Asegurar paridad de experiencia entre desktop y mobile
+
+**Observacion**
+
+La version mobile de home se percibe mas limpia y enfocada que la desktop.
+Eso sugiere una oportunidad: usar mobile como referencia para simplificar desktop,
+no al reves.
+
+**Recomendaciones**
+
+- Revisar si desktop esta mostrando demasiado contexto simultaneo.
+- Mantener consistencia semantica entre plataformas:
+  - mismo significado de error,
+  - mismo criterio de completitud,
+  - misma confirmacion de valor aplicado.
+- Auditar especialmente estados intermedios y mensajes residuales en desktop.
+
 ## Quick Wins vs Cambios Estructurales
 
 ### Quick wins
 
 - limpiar mensajes residuales en home,
 - no mostrar errores prematuros,
-- deshabilitar `Buscar vuelo` sin fecha aplicada,
+- usar validacion visible y guiada en vez de CTA ambiguo,
 - reforzar confirmación visual de ciudad y fecha,
-- mantener expandido el método de pago una vez elegido.
+- mantener expandido el método de pago una vez elegido,
+- dar contexto claro al estado de procesamiento antes de checkout.
 
 ### Cambios estructurales
 
 - redefinir semántica de estados de home y resultados,
 - rediseñar el datepicker como componente con contrato más claro,
 - revisar la arquitectura visual y de interacción de ancillaries,
-- replantear cómo se presentan y descubren medios de pago.
+- replantear cómo se presentan y descubren medios de pago,
+- simplificar la composición desktop tomando como base la linealidad de mobile.
 
 ## Cómo medir mejora real
 
@@ -244,6 +355,7 @@ Para validar si estas mejoras funcionan, conviene medir:
 - tasa de reformulación de origen/destino,
 - tasa de apertura repetida del calendario antes de buscar,
 - clicks en `Buscar vuelo` con formulario incompleto,
+- tiempo y abandono en la pantalla de procesamiento previa a checkout,
 - tiempo desde carga de home hasta búsqueda exitosa,
 - abandono entre resultados y checkout,
 - errores de validación por paso,
@@ -252,10 +364,10 @@ Para validar si estas mejoras funcionan, conviene medir:
 ## Orden Recomendado de Trabajo
 
 1. Home de búsqueda e hidratación real.
-2. Datepicker y confirmación de fecha aplicada.
+2. Estrategia de validación y confirmación de fecha.
 3. Autocomplete de ciudades.
-4. Transición búsqueda -> resultados.
-5. Ancillaries y checkout.
+4. Transición búsqueda -> resultados y escaneabilidad.
+5. Ancillaries, checkout y pantalla de procesamiento.
 
 La oportunidad mayor está en aumentar **confianza, claridad y continuidad**.
 La experiencia actual no parece necesitar primero más funcionalidad, sino menos ambigüedad.

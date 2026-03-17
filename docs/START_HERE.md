@@ -14,6 +14,10 @@ Luego, según tarea:
 - Si cambia ubicación de responsabilidades: `docs/CHANGE_PLAYBOOK.md`
 - Si se va a commitear: `docs/COMMIT_PROTOCOL.md`
 
+Lectura complementaria por audiencia:
+- agentes: `docs/agent/README.md`
+- lectura humana/producto: `docs/human/README.md`
+
 ## Comando único de arranque
 
 ```bash

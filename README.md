@@ -20,6 +20,8 @@ Si vas a trabajar este repo con agentes (AI o humanos), empieza por:
 - [`docs/START_HERE.md`](docs/START_HERE.md) (bootstrap obligatorio)
 - [`CHANGELOG.md`](CHANGELOG.md) (historial para ubicar regresiones)
 - [`docs/README.md`](docs/README.md) (índice de documentación técnica)
+- [`docs/agent/README.md`](docs/agent/README.md) (lectura orientada a agentes)
+- [`docs/human/README.md`](docs/human/README.md) (lectura orientada a personas, UX y proceso)
 - [`docs/AI_CONTEXT_PACK.md`](docs/AI_CONTEXT_PACK.md) (contexto corto para ahorrar tokens)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (arquitectura y contratos)
 - [`docs/CHANGE_PLAYBOOK.md`](docs/CHANGE_PLAYBOOK.md) (dónde tocar según pedido)

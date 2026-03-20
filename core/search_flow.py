@@ -1108,56 +1108,71 @@ def _seleccionar_primer_asiento_disponible(page):
 
 def _resolver_pantalla_asientos(page):
     estrategia = state.CFG.get("extras", {}).get("seleccion_asiento", "SKIP")
-    url_previa = page.url or ""
+    deadline = time.monotonic() + 12
+    auto_intentado = estrategia != "AUTO"
 
-    if estrategia == "AUTO":
-        if _seleccionar_primer_asiento_disponible(page):
-            print("🪑 Asiento seleccionado automáticamente.")
-        else:
-            print("⚠️ No se encontró asiento disponible con selectores conocidos. Se continuará sin elegir.")
+    while time.monotonic() < deadline:
+        gestionar_pausa_edicion(page, "resolver_asientos")
 
-    if _click_selector_visible(
-        page,
-        [
-            'button:has-text("Continuar al siguiente vuelo")',
-            'button:has-text("Continuar ao próximo voo")',
-            'button:has-text("Continue to next flight")',
-            'button:has-text("Quiero un asiento aleatorio")',
-            'button:has-text("I want a random seat")',
-            'button:has-text("Continuar")',
-            'button:has-text("Continue")',
-        ],
-        force=True,
-        requerido=False,
-    ) or _click_primer_selector(
-        page,
-        [
-            'button:has-text("Continuar al siguiente vuelo")',
-            'button:has-text("Continuar ao próximo voo")',
-            'button:has-text("Continue to next flight")',
-            'button:has-text("Quiero un asiento aleatorio")',
-            'button:has-text("I want a random seat")',
-            'button:has-text("Continuar")',
-            'button:has-text("Continue")',
-        ],
-    ):
-        page.wait_for_timeout(600)
-        _continuar_modal_asientos_sin_elegir(page)
-        _esperar_cambio_post_accion(page, url_previa)
-        return True
+        if not _url_contiene(page, "/seats"):
+            return True
 
-    if _continuar_modal_asientos_sin_elegir(page) or _click_primer_selector(
-        page,
-        [
-            'button:has-text("Seguir sin elegir")',
-            'button:has-text("Continuar sin elegir")',
-            'button:has-text("Continue without selecting")',
-        ],
-    ):
-        _esperar_cambio_post_accion(page, url_previa)
-        return True
+        if detectar_etapa_actual(page) in {"DATOS_PASAJERO", "CHECKOUT"}:
+            return True
 
-    return False
+        url_previa = page.url or ""
+
+        if not auto_intentado:
+            auto_intentado = True
+            if _seleccionar_primer_asiento_disponible(page):
+                print("🪑 Asiento seleccionado automáticamente.")
+            else:
+                print("⚠️ No se encontró asiento disponible con selectores conocidos. Se continuará sin elegir.")
+
+        if _click_selector_visible(
+            page,
+            [
+                'button:has-text("Continuar al siguiente vuelo")',
+                'button:has-text("Continuar ao próximo voo")',
+                'button:has-text("Continue to next flight")',
+                'button:has-text("Quiero un asiento aleatorio")',
+                'button:has-text("I want a random seat")',
+                'button:has-text("Continuar")',
+                'button:has-text("Continue")',
+            ],
+            force=True,
+            requerido=False,
+        ) or _click_primer_selector(
+            page,
+            [
+                'button:has-text("Continuar al siguiente vuelo")',
+                'button:has-text("Continuar ao próximo voo")',
+                'button:has-text("Continue to next flight")',
+                'button:has-text("Quiero un asiento aleatorio")',
+                'button:has-text("I want a random seat")',
+                'button:has-text("Continuar")',
+                'button:has-text("Continue")',
+            ],
+        ):
+            page.wait_for_timeout(600)
+            _continuar_modal_asientos_sin_elegir(page)
+            if _esperar_cambio_post_accion(page, url_previa):
+                return True
+
+        if _continuar_modal_asientos_sin_elegir(page) or _click_primer_selector(
+            page,
+            [
+                'button:has-text("Seguir sin elegir")',
+                'button:has-text("Continuar sin elegir")',
+                'button:has-text("Continue without selecting")',
+            ],
+        ):
+            if _esperar_cambio_post_accion(page, url_previa):
+                return True
+
+        page.wait_for_timeout(700)
+
+    return not _url_contiene(page, "/seats")
 
 
 def _contar_unidades_servicio(page):
@@ -1264,56 +1279,84 @@ def _resolver_pantalla_ancillaries(page):
     extras = state.CFG.get("extras", {})
     maletas_cabina = extras.get("maletas_cabina", 0)
     maletas_bodega = extras.get("maletas_bodega", 0)
+    deadline = time.monotonic() + 12
+    cabina_pendiente = maletas_cabina > 0
+    bodega_pendiente = maletas_bodega > 0
 
-    if maletas_cabina > 0 and not _seleccionar_servicio_adicional(
-        page,
-        ["Equipaje en cabina", "Cabin bag", "Cabin baggage"],
-        maletas_cabina,
-    ):
-        print(f"⚠️ No se pudo agregar equipaje de cabina solicitado ({maletas_cabina}).")
+    while time.monotonic() < deadline:
+        gestionar_pausa_edicion(page, "resolver_ancillaries")
 
-    if maletas_bodega > 0 and not _seleccionar_servicio_adicional(
-        page,
-        ["Equipaje en bodega", "Checked baggage", "Equipaje facturado"],
-        maletas_bodega,
-    ):
-        print(f"⚠️ No se pudo agregar equipaje en bodega solicitado ({maletas_bodega}).")
+        if not _url_contiene(page, "/additional-services"):
+            return True
 
-    if _click_selector_visible(
-        page,
-        [
-            'button:has-text("Continuar")',
-            'button:has-text("Guardar y continuar")',
-            'button:has-text("Continue")',
-        ],
-        force=True,
-        requerido=False,
-    ) or _click_primer_selector(
-        page,
-        [
-            'button:has-text("Continuar")',
-            'button:has-text("Guardar y continuar")',
-            'button:has-text("Continue")',
-        ],
-    ):
-        page.wait_for_timeout(900)
-        return True
+        if detectar_etapa_actual(page) in {"DATOS_PASAJERO", "CHECKOUT"}:
+            return True
 
-    return False
+        url_previa = page.url or ""
+
+        if cabina_pendiente:
+            cabina_pendiente = False
+            if not _seleccionar_servicio_adicional(
+                page,
+                ["Equipaje en cabina", "Cabin bag", "Cabin baggage"],
+                maletas_cabina,
+            ):
+                print(f"⚠️ No se pudo agregar equipaje de cabina solicitado ({maletas_cabina}).")
+
+        if bodega_pendiente:
+            bodega_pendiente = False
+            if not _seleccionar_servicio_adicional(
+                page,
+                ["Equipaje en bodega", "Checked baggage", "Equipaje facturado"],
+                maletas_bodega,
+            ):
+                print(f"⚠️ No se pudo agregar equipaje en bodega solicitado ({maletas_bodega}).")
+
+        if _click_selector_visible(
+            page,
+            [
+                'button:has-text("Continuar")',
+                'button:has-text("Guardar y continuar")',
+                'button:has-text("Continue")',
+            ],
+            force=True,
+            requerido=False,
+        ) or _click_primer_selector(
+            page,
+            [
+                'button:has-text("Continuar")',
+                'button:has-text("Guardar y continuar")',
+                'button:has-text("Continue")',
+            ],
+        ):
+            page.wait_for_timeout(900)
+            if _esperar_cambio_post_accion(page, url_previa):
+                return True
+
+        page.wait_for_timeout(700)
+
+    return not _url_contiene(page, "/additional-services")
 
 
 def _saltar_extras(page, verbose=True):
     if verbose:
         print("--- Saltando Extras ---")
-    if _url_contiene(page, "/seats"):
-        if not _resolver_pantalla_asientos(page):
-            print("⚠️ Pantalla de asientos aún no lista para avanzar. Reintentando...")
-        return
+    deadline = time.monotonic() + 25
 
-    if _url_contiene(page, "/additional-services"):
-        if not _resolver_pantalla_ancillaries(page):
-            print("⚠️ Pantalla de servicios adicionales aún no lista para avanzar. Reintentando...")
-        return
+    while time.monotonic() < deadline:
+        if _url_contiene(page, "/seats"):
+            if not _resolver_pantalla_asientos(page):
+                print("⚠️ Pantalla de asientos aún no lista para avanzar. Reintentando...")
+                return False
+            continue
+
+        if _url_contiene(page, "/additional-services"):
+            if not _resolver_pantalla_ancillaries(page):
+                print("⚠️ Pantalla de servicios adicionales aún no lista para avanzar. Reintentando...")
+                return False
+            continue
+
+        return True
 
     botones = [
         [
@@ -1345,3 +1388,5 @@ def _saltar_extras(page, verbose=True):
                 page.wait_for_timeout(600)
         except Exception as error:
             print(f"⚠️ No se pudo clickear '{candidatos[0]}': {error}")
+
+    return not (_url_contiene(page, "/seats") or _url_contiene(page, "/additional-services"))

@@ -6,3 +6,5 @@
 TIEMPO_PAUSA_SEGURIDAD = 1500  # 1.5 segundos (en milisegundos)
 VELOCIDAD_VISUAL = 500         # Slow_mo para ver qué hace
 ESPERA_FINAL_SEGUNDOS = 600    # Espera final para revisión antes de screenshot/cierre
+LIMPIAR_EVIDENCIAS_ANTIGUAS = True
+SEMANAS_RETENCION_EVIDENCIAS = 2

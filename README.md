@@ -150,6 +150,8 @@ TARJETA = {
 TIEMPO_PAUSA_SEGURIDAD = 1500  # Pausa antes de interactuar con campos (ms)
 VELOCIDAD_VISUAL = 500          # Velocidad de animación del navegador (ms)
 ESPERA_FINAL_SEGUNDOS = 600     # 10 minutos antes de screenshot final/cierre
+LIMPIAR_EVIDENCIAS_ANTIGUAS = True
+SEMANAS_RETENCION_EVIDENCIAS = 2
 ```
 
 ### 🛑 Checkpoints (Pausas dinámicas):
@@ -206,6 +208,7 @@ Desde la interfaz puedes:
 - Pausar para edición manual y continuar sin reiniciar la ejecución
 - Ver logs en tiempo real
 - Ajustar la espera final (por defecto 600s = 10 minutos)
+- Limpiar evidencias antiguas al iniciar y definir la retención en semanas
 - Usar tu Chrome abierto por CDP (sin abrir una instancia nueva)
 - Guardar automáticamente tus últimos ajustes para próximas ejecuciones
 - Configurar overrides de pasajero/pagador y tarjeta desde la propia UI
@@ -236,11 +239,20 @@ python test_sky.py --market PE --adultos 3 --ninos 1 --dias 16
 
 # Modo exploración UI (captura screenshots + reporte de controles y se detiene tras búsqueda)
 python test_sky.py --market PE --tipo-viaje ROUND_TRIP --adultos 2 --ninos 1 --modo-exploracion --solo-exploracion
+
+# Conservar evidencias por 3 semanas
+python test_sky.py --retencion-evidencias-semanas 3
+
+# Desactivar la limpieza automática de evidencias
+python test_sky.py --no-limpiar-evidencias-antiguas
 ```
 
 En modo exploración, el bot guarda evidencia en:
 - `screenshots_pruebas/exploracion_<timestamp>/*.png`
 - `screenshots_pruebas/exploracion_<timestamp>/*.txt`
+
+Si `LIMPIAR_EVIDENCIAS_ANTIGUAS = True`, al iniciar cada ejecución se eliminan entradas de `screenshots_pruebas/`
+con antigüedad mayor a `SEMANAS_RETENCION_EVIDENCIAS`.
 
 El bot se ejecutará con las siguientes características:
 - **Navegador visible** (`headless=False`) para que puedas ver el proceso
@@ -255,6 +267,7 @@ Si el bot encuentra problemas, generará automáticamente screenshots con nombre
 - `error_interaccion.png`
 
 Estos archivos NO se subirán al repositorio (están en `.gitignore`).
+Además, la limpieza automática puede borrar evidencia vieja para evitar crecimiento indefinido del directorio.
 
 ## 🔍 Características Técnicas
 

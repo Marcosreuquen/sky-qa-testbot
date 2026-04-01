@@ -16,8 +16,9 @@ from playwright.sync_api import expect
 
 import core.state as state
 from core.helpers import (
-    _activar_modo_manual,
     _buscar_selector_visible,
+    _click_selector_visible,
+    _normalizar_texto,
     gestionar_pausa_edicion,
     pausar_en_checkpoint,
 )
@@ -26,6 +27,118 @@ from core.helpers import (
 # ==========================================
 # HELPERS DE PAGO
 # ==========================================
+
+def _esperar_selector_pago(page, selectores, timeout_ms=20000, contexto="esperando_selector_pago"):
+    deadline = time.monotonic() + timeout_ms / 1000
+    while time.monotonic() < deadline:
+        gestionar_pausa_edicion(page, contexto)
+        item = _buscar_selector_visible(page, selectores)
+        if item:
+            return item
+        page.wait_for_timeout(350)
+    return None
+
+
+def _click_selector_pago(page, selectores, timeout_ms=15000, force=True, descripcion=None):
+    deadline = time.monotonic() + timeout_ms / 1000
+    ultimo_error = None
+    while time.monotonic() < deadline:
+        gestionar_pausa_edicion(page, f"click_{descripcion or 'selector_pago'}")
+        item = _buscar_selector_visible(page, selectores)
+        if item:
+            try:
+                item.scroll_into_view_if_needed()
+            except Exception:
+                pass
+            try:
+                item.click(force=force, timeout=2500)
+                return True
+            except Exception as error:
+                ultimo_error = error
+        page.wait_for_timeout(350)
+
+    if ultimo_error:
+        raise RuntimeError(f"No se pudo clickear '{descripcion or selectores}': {ultimo_error}")
+    raise RuntimeError(f"No apareció '{descripcion or selectores}' dentro de {timeout_ms}ms.")
+
+
+def _rellenar_input_pago(page, selectores, valor, timeout_ms=15000, descripcion=None, delay=None):
+    campo = _esperar_selector_pago(
+        page,
+        selectores,
+        timeout_ms=timeout_ms,
+        contexto=f"input_{descripcion or 'pago'}",
+    )
+    if not campo:
+        raise RuntimeError(f"No apareció input '{descripcion or selectores}'.")
+
+    campo.click(force=True)
+    try:
+        campo.fill("")
+    except Exception:
+        pass
+
+    if delay is not None:
+        campo.type(str(valor), delay=delay)
+    else:
+        campo.fill(str(valor))
+    return campo
+
+
+def _esperar_url_que_contenga(page, fragmentos, timeout_ms=30000, contexto="esperando_url_pago"):
+    deadline = time.monotonic() + timeout_ms / 1000
+    fragmentos_normalizados = [fragmento.lower() for fragmento in fragmentos]
+    while time.monotonic() < deadline:
+        gestionar_pausa_edicion(page, contexto)
+        url_actual = (page.url or "").lower()
+        if any(fragmento in url_actual for fragmento in fragmentos_normalizados):
+            return True
+        page.wait_for_timeout(350)
+    return False
+
+
+def _seleccionar_autorizacion_webpay(page):
+    selector_vci = _esperar_selector_pago(
+        page,
+        [
+            "select#vci",
+            'select[name="vci"]',
+        ],
+        timeout_ms=10000,
+        contexto="webpay_autorizacion",
+    )
+    if not selector_vci:
+        return False
+
+    opciones = []
+    opciones_locator = selector_vci.locator("option")
+    for indice in range(opciones_locator.count()):
+        opcion = opciones_locator.nth(indice)
+        try:
+            valor = opcion.get_attribute("value") or ""
+            texto = _normalizar_texto(opcion.inner_text()).lower()
+            if valor:
+                opciones.append((valor, texto))
+        except Exception:
+            continue
+
+    valor_preferido = None
+    for valor, texto in opciones:
+        if valor.upper() in {"TSY", "Y"} or any(
+            patron in texto for patron in ("aprob", "author", "acept", "correct")
+        ):
+            valor_preferido = valor
+            break
+
+    if not valor_preferido and opciones:
+        valor_preferido = opciones[0][0]
+
+    if not valor_preferido:
+        return False
+
+    selector_vci.select_option(valor_preferido)
+    return True
+
 
 def _prefill_contacto(page):
     """Rellena nombre/apellido/email del pasajero en formularios de pasarela (best-effort)."""
@@ -153,15 +266,39 @@ def _finalizar_compra(page, boton_texto="Ir a pagar"):
     print("--- Finalizando Compra ---")
 
     print("✅ Buscando checkbox...")
-    checkbox_exacto = page.locator(".checkbox_icon").last
-    checkbox_exacto.scroll_into_view_if_needed()
-    page.wait_for_timeout(500)
-    checkbox_exacto.click()
+    checkbox_encontrado = any(
+        _click_selector_visible(
+            page,
+            selectores,
+            force=True,
+            requerido=False,
+        )
+        for selectores in (
+            [".checkbox_icon"],
+            ['label:has(.checkbox_icon)'],
+            ['label:has-text("Acepto")'],
+            ['label:has-text("Términos")', 'label:has-text("Terminos")', 'label:has-text("Terms")'],
+            ['input[type="checkbox"]'],
+            ['[role="checkbox"]'],
+        )
+    )
+    if not checkbox_encontrado:
+        print("⚠️ No se encontró checkbox visible de términos. Se intenta continuar igual.")
 
     print(f"🚀 Buscando botón '{boton_texto}'...")
-    btn_pagar = page.locator("button").filter(has_text=boton_texto)
-    btn_pagar.wait_for(state="visible", timeout=5000)
-    btn_pagar.click()
+    _click_selector_pago(
+        page,
+        [
+            f'button:has-text("{boton_texto}")',
+            f'input[type="submit"][value*="{boton_texto}" i]',
+            'button:has-text("Ir a pagar")',
+            'button:has-text("Pagar")',
+            'button:has-text("Pay")',
+            'button[type="submit"]',
+        ],
+        timeout_ms=12000,
+        descripcion=f"botón {boton_texto}",
+    )
     print("🎉 ¡CLICK EN PAGAR REALIZADO!")
 
 
@@ -235,58 +372,194 @@ def _pagar_webpay(page):
 
     # ── Paso 2: Portal Transbank — Seleccionar "Tarjetas" ──
     print("🌐 Esperando portal Transbank...")
-    page.wait_for_url(re.compile(r"transbank\.cl"), timeout=30000)
-    page.wait_for_timeout(2000)
+    if not (
+        _esperar_url_que_contenga(page, ["transbank.cl", "webpay"], timeout_ms=45000, contexto="webpay_portal")
+        or _esperar_selector_pago(
+            page,
+            [
+                'button:has-text("Crédito")',
+                'button:has-text("Credito")',
+                'button:has-text("Tarjetas")',
+                'button:has-text("Tarjeta de crédito")',
+                "button#credito",
+                "button#tarjetas",
+            ],
+            timeout_ms=45000,
+            contexto="webpay_portal",
+        )
+    ):
+        raise RuntimeError("No apareció el portal Webpay/Transbank.")
+    page.wait_for_timeout(1200)
 
-    print("🃏 Seleccionando 'Tarjetas'...")
-    page.locator("button#tarjetas").click()
-    page.wait_for_timeout(2000)
+    print("🃏 Seleccionando método de crédito...")
+    _click_selector_pago(
+        page,
+        [
+            'button:has-text("Crédito")',
+            'button:has-text("Credito")',
+            'button:has-text("Tarjetas")',
+            'button:has-text("Tarjeta de crédito")',
+            "button#credito",
+            "button#tarjetas",
+        ],
+        timeout_ms=12000,
+        descripcion="entrada crédito Webpay",
+    )
+    page.wait_for_timeout(1200)
 
     # ── Paso 3: Llenar datos de tarjeta ──
     print("💳 Llenando datos de tarjeta...")
-    card_number = page.locator("input#card-number")
-    card_number.wait_for(state="visible", timeout=15000)
-    card_number.click()
-    card_number.fill(state.CFG["tarjeta"]["numero"])
+    _rellenar_input_pago(
+        page,
+        [
+            "input#card-number",
+            'input[name="card-number"]',
+            'input[autocomplete="cc-number"]',
+            'input[placeholder*="número de tarjeta" i]',
+            'input[placeholder*="card number" i]',
+        ],
+        state.CFG["tarjeta"]["numero"],
+        timeout_ms=15000,
+        descripcion="número tarjeta Webpay",
+    )
 
     page.locator("body").click()
-    page.wait_for_timeout(1000)
+    page.wait_for_timeout(700)
 
-    card_exp = page.locator("input#card-exp")
-    card_exp.click()
     fecha = state.CFG["tarjeta"]["fecha"].replace("/", "")
-    card_exp.type(fecha, delay=80)
+    _rellenar_input_pago(
+        page,
+        [
+            "input#card-exp",
+            'input[name="card-exp"]',
+            'input[autocomplete="cc-exp"]',
+            'input[placeholder*="mm/yy" i]',
+            'input[placeholder*="exp" i]',
+        ],
+        fecha,
+        timeout_ms=12000,
+        descripcion="fecha Webpay",
+        delay=80,
+    )
 
-    card_cvv = page.locator("input#card-cvv")
-    card_cvv.click()
-    card_cvv.type(state.CFG["tarjeta"]["cvv"], delay=80)
+    _rellenar_input_pago(
+        page,
+        [
+            "input#card-cvv",
+            'input[name="card-cvv"]',
+            'input[autocomplete="cc-csc"]',
+            'input[placeholder*="cvv" i]',
+            'input[placeholder*="cvc" i]',
+            'input[placeholder*="seguridad" i]',
+        ],
+        state.CFG["tarjeta"]["cvv"],
+        timeout_ms=12000,
+        descripcion="cvv Webpay",
+        delay=80,
+    )
 
     print("🚀 Click en 'Pagar'...")
-    btn_pagar_tbk = page.get_by_role("button", name="Pagar", exact=True)
-    btn_pagar_tbk.wait_for(state="visible", timeout=10000)
-    page.wait_for_timeout(1000)
-    btn_pagar_tbk.click()
+    _click_selector_pago(
+        page,
+        [
+            'button:has-text("Pagar")',
+            'input[type="submit"][value*="Pagar" i]',
+            'button:has-text("Continuar")',
+            'button[type="submit"]',
+        ],
+        timeout_ms=12000,
+        descripcion="pagar Webpay",
+    )
 
     # ── Paso 4: Autenticación — RUT y Clave ──
     print("🔐 Esperando página de autenticación...")
-    page.wait_for_url(re.compile(r"authenticator"), timeout=30000)
-    page.wait_for_timeout(1000)
+    if not (
+        _esperar_url_que_contenga(
+            page,
+            ["authenticator", "autentic", "authorize"],
+            timeout_ms=35000,
+            contexto="webpay_auth_url",
+        )
+        or _esperar_selector_pago(
+            page,
+            [
+                "input#rutClient",
+                'input[name="rutClient"]',
+                'input[placeholder*="rut" i]',
+                "input#passwordClient",
+                'input[type="password"]',
+            ],
+            timeout_ms=35000,
+            contexto="webpay_auth_form",
+        )
+    ):
+        raise RuntimeError("No apareció la pantalla de autenticación Webpay.")
+    page.wait_for_timeout(800)
 
     rut = state.CFG["tarjeta"].get("rut", "11.111.111-1")
     clave = state.CFG["tarjeta"].get("clave", "123")
 
     print(f"📝 RUT: {rut}")
-    page.locator("input#rutClient").fill(rut)
-    page.locator("input#passwordClient").fill(clave)
+    _rellenar_input_pago(
+        page,
+        [
+            "input#rutClient",
+            'input[name="rutClient"]',
+            'input[name*="rut" i]',
+            'input[placeholder*="rut" i]',
+        ],
+        rut,
+        timeout_ms=15000,
+        descripcion="rut Webpay",
+    )
+    _rellenar_input_pago(
+        page,
+        [
+            "input#passwordClient",
+            'input[name="passwordClient"]',
+            'input[type="password"]',
+            'input[placeholder*="clave" i]',
+            'input[placeholder*="password" i]',
+        ],
+        clave,
+        timeout_ms=15000,
+        descripcion="clave Webpay",
+    )
 
-    page.locator('input[type="submit"][value="Aceptar"]').click()
+    _click_selector_pago(
+        page,
+        [
+            'input[type="submit"][value="Aceptar"]',
+            'input[type="submit"][value*="Autorizar" i]',
+            'button:has-text("Aceptar")',
+            'button:has-text("Autorizar")',
+            'button:has-text("Continuar")',
+        ],
+        timeout_ms=12000,
+        descripcion="confirmación auth Webpay",
+    )
 
     # ── Paso 5: Confirmación ──
     print("✅ Esperando pantalla de confirmación...")
-    page.wait_for_timeout(3000)
+    page.wait_for_timeout(2000)
 
-    page.locator("select#vci").select_option("TSY")
-    page.locator('input[type="submit"][value="Continuar"]').click()
+    _seleccionar_autorizacion_webpay(page)
+    try:
+        _click_selector_pago(
+            page,
+            [
+                'input[type="submit"][value="Continuar"]',
+                'input[type="submit"][value*="Autorizar" i]',
+                'button:has-text("Continuar")',
+                'button:has-text("Autorizar")',
+                'button:has-text("Volver a SKY")',
+                'a:has-text("Volver a SKY")',
+            ],
+            timeout_ms=12000,
+            descripcion="salida Webpay",
+        )
+    except Exception as error:
+        print(f"⚠️ No se encontró CTA final explícito en Webpay: {error}")
 
     print("🎉 ¡Webpay completado! Esperando redirección a SKY...")
 

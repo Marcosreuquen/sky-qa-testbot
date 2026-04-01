@@ -23,9 +23,11 @@ from config import (
     ESPERA_FINAL_SEGUNDOS,
     HOME_MARKET,
     AMBIENTE,
+    LIMPIAR_EVIDENCIAS_ANTIGUAS,
     MALETAS_BODEGA,
     MALETAS_CABINA,
     PASAJERO,
+    SEMANAS_RETENCION_EVIDENCIAS,
     SELECCION_ASIENTO,
     TARJETA_POR_MARKET,
     TIEMPO_PAUSA_SEGURIDAD,
@@ -185,6 +187,8 @@ class SkyBotGUI:
         self.pausa_var = tk.IntVar(value=TIEMPO_PAUSA_SEGURIDAD)
         self.slow_mo_var = tk.IntVar(value=VELOCIDAD_VISUAL)
         self.espera_final_var = tk.IntVar(value=ESPERA_FINAL_SEGUNDOS)
+        self.limpiar_evidencias_antiguas_var = tk.BooleanVar(value=LIMPIAR_EVIDENCIAS_ANTIGUAS)
+        self.retencion_evidencias_semanas_var = tk.IntVar(value=SEMANAS_RETENCION_EVIDENCIAS)
         self.cdp_url_var = tk.StringVar(value=CDP_URL_DEFAULT)
 
         self.headless_var = tk.BooleanVar(value=False)
@@ -211,6 +215,7 @@ class SkyBotGUI:
         self.tarjeta_numero_override_var = tk.StringVar(value=tarjeta_default.get("numero", ""))
         self.tarjeta_fecha_override_var = tk.StringVar(value=tarjeta_default.get("fecha", ""))
         self.tarjeta_cvv_override_var = tk.StringVar(value=tarjeta_default.get("cvv", ""))
+        self._market_codigo_defaults_tarjeta = market_code_default
 
         self.status_var = tk.StringVar(value="Listo para ejecutar")
 
@@ -272,6 +277,8 @@ class SkyBotGUI:
             "pausa": int(self.pausa_var.get()),
             "slow_mo": int(self.slow_mo_var.get()),
             "espera_final": int(self.espera_final_var.get()),
+            "limpiar_evidencias_antiguas": bool(self.limpiar_evidencias_antiguas_var.get()),
+            "retencion_evidencias_semanas": int(self.retencion_evidencias_semanas_var.get()),
             "cdp_url": self.cdp_url_var.get(),
             "headless": bool(self.headless_var.get()),
             "usar_chrome_existente": bool(self.usar_chrome_existente_var.get()),
@@ -319,6 +326,8 @@ class SkyBotGUI:
             self.pausa_var,
             self.slow_mo_var,
             self.espera_final_var,
+            self.limpiar_evidencias_antiguas_var,
+            self.retencion_evidencias_semanas_var,
             self.cdp_url_var,
             self.headless_var,
             self.usar_chrome_existente_var,
@@ -507,6 +516,7 @@ class SkyBotGUI:
         flujo = ttk.LabelFrame(principal_layout, text="Flujo")
         flujo.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
         combo_market = self._add_combo(flujo, "País", self.market_var, list(MARKET_LABEL_TO_CODE.keys()), row=0)
+        combo_market.bind("<<ComboboxSelected>>", self._on_market_combo_selected, add="+")
         combo_ambiente = self._add_combo(flujo, "Ambiente", self.ambiente_var, list(AMBIENTE_LABEL_TO_CODE.keys()), row=1)
         combo_tipo_viaje = self._add_combo(flujo, "Tipo de viaje", self.tipo_viaje_var, list(TRIP_LABEL_TO_CODE.keys()), row=2)
         combo_checkpoint = self._add_combo(
@@ -632,6 +642,12 @@ class SkyBotGUI:
             variable=self.log_limpio_var,
         )
         ck_log_limpio.grid(row=4, column=0, columnspan=2, sticky="w", padx=8, pady=(0, 8))
+        ck_limpiar_evidencias = ttk.Checkbutton(
+            ejecucion,
+            text="Limpiar evidencias antiguas al iniciar",
+            variable=self.limpiar_evidencias_antiguas_var,
+        )
+        ck_limpiar_evidencias.grid(row=5, column=0, columnspan=2, sticky="w", padx=8, pady=(0, 8))
 
         tecnico = ttk.LabelFrame(advanced_grid, text="Conexión y tiempos")
         tecnico.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
@@ -648,6 +664,14 @@ class SkyBotGUI:
         self._add_spin(tecnico, "Pausa seguridad (ms)", self.pausa_var, 0, 30000, row=2)
         self._add_spin(tecnico, "Slow mo (ms)", self.slow_mo_var, 0, 5000, row=3)
         self._add_spin(tecnico, "Espera final (seg)", self.espera_final_var, 0, 3600, row=4)
+        self._add_spin(
+            tecnico,
+            "Retención evidencias (semanas)",
+            self.retencion_evidencias_semanas_var,
+            1,
+            52,
+            row=5,
+        )
 
         tooltip_modo_exploracion = "Captura screenshots y reportes de UI por etapa para debugging."
         tooltip_solo_exploracion = "Detiene el flujo tras la búsqueda: no selecciona tarifa ni llega al pago."
@@ -656,10 +680,15 @@ class SkyBotGUI:
         tooltip_headless = "Ejecuta sin mostrar ventana de navegador."
         tooltip_cdp = "Dirección para conectarse al Chrome abierto. Normalmente: http://127.0.0.1:9222"
         tooltip_preparar_cdp = "Abre o prepara Chrome con debugging remoto para automatización por CDP."
+        tooltip_limpiar_evidencias = "Antes de ejecutar, elimina archivos y carpetas viejos de screenshots_pruebas."
+        tooltip_retencion_evidencias = (
+            "Conserva solo las últimas N semanas de evidencias; lo más antiguo se borra al iniciar."
+        )
 
         self._add_tooltip(ck_modo_exploracion, tooltip_modo_exploracion)
         self._add_tooltip(ck_solo_exploracion, tooltip_solo_exploracion)
         self._add_tooltip(ck_log_limpio, tooltip_log_limpio)
+        self._add_tooltip(ck_limpiar_evidencias, tooltip_limpiar_evidencias)
         self._add_tooltip(ck_usar_chrome, tooltip_chrome)
         self._add_tooltip(ck_headless, tooltip_headless)
         self._add_tooltip(lbl_cdp, tooltip_cdp)
@@ -671,8 +700,10 @@ class SkyBotGUI:
         self._add_help_icon_grid(ejecucion, row=2, column=2, tooltip_text=tooltip_modo_exploracion, pady=2)
         self._add_help_icon_grid(ejecucion, row=3, column=2, tooltip_text=tooltip_solo_exploracion, pady=(2, 8))
         self._add_help_icon_grid(ejecucion, row=4, column=2, tooltip_text=tooltip_log_limpio, pady=(0, 8))
+        self._add_help_icon_grid(ejecucion, row=5, column=2, tooltip_text=tooltip_limpiar_evidencias, pady=(0, 8))
         self._add_help_icon_grid(tecnico, row=0, column=2, tooltip_text=tooltip_cdp, pady=5)
         self._add_help_icon_grid(tecnico, row=1, column=2, tooltip_text=tooltip_preparar_cdp, pady=(2, 4))
+        self._add_help_icon_grid(tecnico, row=5, column=2, tooltip_text=tooltip_retencion_evidencias, pady=5)
 
         self.acciones_frame = ttk.Frame(main)
         self.acciones_frame.pack(fill=tk.X, pady=(0, 8))
@@ -988,6 +1019,38 @@ class SkyBotGUI:
             return value
         return MARKET_CODE_TO_LABEL.get(value, MARKET_CODE_TO_LABEL.get(HOME_MARKET, "Perú"))
 
+    def _tarjeta_defaults_market(self, market_code):
+        return TARJETA_POR_MARKET.get(self._market_code_from_label(market_code), {})
+
+    def _valores_tarjeta_actuales(self):
+        return {
+            "numero": self.tarjeta_numero_override_var.get(),
+            "fecha": self.tarjeta_fecha_override_var.get(),
+            "cvv": self.tarjeta_cvv_override_var.get(),
+        }
+
+    def _aplicar_defaults_tarjeta_market(self, market_code, force=False):
+        market_code = self._market_code_from_label(market_code)
+        defaults_nuevos = self._tarjeta_defaults_market(market_code)
+        defaults_previos = self._tarjeta_defaults_market(getattr(self, "_market_codigo_defaults_tarjeta", market_code))
+        actuales = self._valores_tarjeta_actuales()
+        puede_sobrescribir = (
+            force
+            or not any(valor.strip() for valor in actuales.values())
+            or all(actuales[campo] == defaults_previos.get(campo, "") for campo in actuales)
+        )
+        self._market_codigo_defaults_tarjeta = market_code
+        if not puede_sobrescribir:
+            return False
+
+        self.tarjeta_numero_override_var.set(defaults_nuevos.get("numero", ""))
+        self.tarjeta_fecha_override_var.set(defaults_nuevos.get("fecha", ""))
+        self.tarjeta_cvv_override_var.set(defaults_nuevos.get("cvv", ""))
+        return True
+
+    def _on_market_combo_selected(self, _event=None):
+        self._aplicar_defaults_tarjeta_market(self.market_var.get())
+
     def _ambiente_code_from_label(self, value):
         if value in AMBIENTE_LABEL_TO_CODE:
             return AMBIENTE_LABEL_TO_CODE[value]
@@ -1057,6 +1120,8 @@ class SkyBotGUI:
             "pausa": int(self.pausa_var.get()),
             "slow_mo": int(self.slow_mo_var.get()),
             "espera_final": int(self.espera_final_var.get()),
+            "limpiar_evidencias_antiguas": bool(self.limpiar_evidencias_antiguas_var.get()),
+            "retencion_evidencias_semanas": int(self.retencion_evidencias_semanas_var.get()),
             "cdp_url": self.cdp_url_var.get(),
             "headless": bool(self.headless_var.get()),
             "usar_chrome_existente": bool(self.usar_chrome_existente_var.get()),
@@ -1119,6 +1184,8 @@ class SkyBotGUI:
         _set_int(self.pausa_var, "pausa")
         _set_int(self.slow_mo_var, "slow_mo")
         _set_int(self.espera_final_var, "espera_final")
+        _set_bool(self.limpiar_evidencias_antiguas_var, "limpiar_evidencias_antiguas")
+        _set_int(self.retencion_evidencias_semanas_var, "retencion_evidencias_semanas")
         _set_str(self.cdp_url_var, "cdp_url")
         _set_bool(self.headless_var, "headless")
         _set_bool(self.usar_chrome_existente_var, "usar_chrome_existente")
@@ -1147,6 +1214,7 @@ class SkyBotGUI:
         self.tipo_viaje_var.set(self._trip_label_from_value(self.tipo_viaje_var.get()))
         self.checkpoint_var.set(self._checkpoint_label_from_value(self.checkpoint_var.get()))
         self.seleccion_asiento_var.set(self._seat_strategy_label_from_value(self.seleccion_asiento_var.get()))
+        self._market_codigo_defaults_tarjeta = self._market_code_from_label(self.market_var.get())
         if self.genero_override_var.get() not in {"", "Masculino", "Femenino"}:
             self.genero_override_var.set("")
         self.cdp_url_var.set(self._normalizar_cdp_url(self.cdp_url_var.get()))
@@ -1190,7 +1258,7 @@ class SkyBotGUI:
         self._suspend_preset_tracking = True
         try:
             self.preset_var.set(DEFAULT_PRESET_NAME)
-            self.market_var.set("Perú")
+            self.market_var.set(MARKET_CODE_TO_LABEL.get(HOME_MARKET, "Perú"))
             self.ambiente_var.set(AMBIENTE_CODE_TO_LABEL.get(AMBIENTE, "QA"))
             self.tipo_viaje_var.set("Solo ida")
             self.origen_var.set(VUELO_ORIGEN)
@@ -1207,6 +1275,8 @@ class SkyBotGUI:
             self.pausa_var.set(TIEMPO_PAUSA_SEGURIDAD)
             self.slow_mo_var.set(VELOCIDAD_VISUAL)
             self.espera_final_var.set(ESPERA_FINAL_SEGUNDOS)
+            self.limpiar_evidencias_antiguas_var.set(LIMPIAR_EVIDENCIAS_ANTIGUAS)
+            self.retencion_evidencias_semanas_var.set(SEMANAS_RETENCION_EVIDENCIAS)
             self.cdp_url_var.set(CDP_URL_DEFAULT)
             self.headless_var.set(False)
             self.usar_chrome_existente_var.set(True)
@@ -1223,10 +1293,7 @@ class SkyBotGUI:
             self.genero_override_var.set(PASAJERO.get("genero", ""))
             self.pais_emision_override_var.set(PASAJERO.get("pais_emision", ""))
             self.fecha_nac_override_var.set(PASAJERO.get("fecha_nac", ""))
-            tarjeta_default = TARJETA_POR_MARKET.get(HOME_MARKET, {})
-            self.tarjeta_numero_override_var.set(tarjeta_default.get("numero", ""))
-            self.tarjeta_fecha_override_var.set(tarjeta_default.get("fecha", ""))
-            self.tarjeta_cvv_override_var.set(tarjeta_default.get("cvv", ""))
+            self._aplicar_defaults_tarjeta_market(HOME_MARKET, force=True)
         finally:
             self._suspend_preset_tracking = False
         self.status_var.set("Valores restablecidos")
@@ -1242,6 +1309,7 @@ class SkyBotGUI:
             pausa = int(self.pausa_var.get())
             slow_mo = int(self.slow_mo_var.get())
             espera_final = int(self.espera_final_var.get())
+            retencion_evidencias_semanas = int(self.retencion_evidencias_semanas_var.get())
             maletas_cabina = int(self.maletas_cabina_var.get())
             maletas_bodega = int(self.maletas_bodega_var.get())
         except Exception as error:
@@ -1249,8 +1317,20 @@ class SkyBotGUI:
 
         if adultos <= 0:
             raise ValueError("Adultos debe ser mayor a 0.")
-        if min(ninos, infantes, dias, dias_retorno, pausa, slow_mo, espera_final, maletas_cabina, maletas_bodega) < 0:
+        if min(
+            ninos,
+            infantes,
+            dias,
+            dias_retorno,
+            pausa,
+            slow_mo,
+            espera_final,
+            maletas_cabina,
+            maletas_bodega,
+        ) < 0:
             raise ValueError("No se permiten valores negativos.")
+        if retencion_evidencias_semanas <= 0:
+            raise ValueError("Retención de evidencias debe ser mayor a 0.")
         if infantes > adultos:
             raise ValueError("Infantes no puede ser mayor que adultos.")
         return {
@@ -1262,6 +1342,7 @@ class SkyBotGUI:
             "pausa": pausa,
             "slow_mo": slow_mo,
             "espera_final": espera_final,
+            "retencion_evidencias_semanas": retencion_evidencias_semanas,
             "maletas_cabina": maletas_cabina,
             "maletas_bodega": maletas_bodega,
         }
@@ -1403,6 +1484,11 @@ class SkyBotGUI:
         cmd.extend(["--pausa", str(numeros["pausa"])])
         cmd.extend(["--slow-mo", str(numeros["slow_mo"])])
         cmd.extend(["--espera-final-segundos", str(numeros["espera_final"])])
+        cmd.extend(["--retencion-evidencias-semanas", str(numeros["retencion_evidencias_semanas"])])
+        if self.limpiar_evidencias_antiguas_var.get():
+            cmd.append("--limpiar-evidencias-antiguas")
+        else:
+            cmd.append("--no-limpiar-evidencias-antiguas")
 
         if checkpoint_code and checkpoint_code != NO_CHECKPOINT:
             cmd.extend(["--checkpoint", checkpoint_code])

@@ -7,6 +7,7 @@ Guía práctica: “si me piden X, toco Y”.
 - Editar `config/vuelo.py`, `config/rutas.py`, `config/pago.py`, `config/pasajero.py`.
 - Si impacta textos de UI o presets iniciales, actualizar `gui.py`.
 - Actualizar `README.md`.
+- Si afecta housekeeping de evidencias, también revisar `test_sky.py` y `screenshots_pruebas/`.
 
 ## 2. Me piden un nuevo flag CLI
 
@@ -23,6 +24,7 @@ Guía práctica: “si me piden X, toco Y”.
   - presets,
   - texto visible y traducciones de labels.
 - No mover lógica de automatización web a GUI.
+- Si el control modifica comportamiento real de ejecución, exponer el flag equivalente en `cli.py`.
 
 ## 4. Me piden arreglar navegación del flujo web
 

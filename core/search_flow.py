@@ -43,8 +43,11 @@ def _esperar_home_lista(page, timeout_ms=45000):
                 [
                     "#origin-id",
                     "#origin-id input",
+                    '[data-test*="origin"]',
                     'input[placeholder*="Desde" i]',
+                    'input[placeholder*="Origen" i]',
                     'input[aria-label*="Desde" i]',
+                    'input[aria-label*="Origen" i]',
                 ],
             )
             destino = _buscar_selector_visible(
@@ -52,16 +55,23 @@ def _esperar_home_lista(page, timeout_ms=45000):
                 [
                     "#destination-id",
                     "#destination-id input",
+                    '[data-test*="destination"]',
                     'input[placeholder*="Hacia" i]',
+                    'input[placeholder*="Destino" i]',
                     'input[aria-label*="Hacia" i]',
+                    'input[aria-label*="Destino" i]',
                 ],
             )
             boton_buscar = _buscar_selector_visible(
                 page,
                 [
                     'button:has-text("Buscar vuelo")',
+                    'button:has-text("Buscar vuelos")',
+                    'button:has-text("Buscar")',
                     'button:has-text("Buscar voo")',
                     'button:has-text("Search")',
+                    'button[type="submit"]',
+                    '[data-test*="search"]',
                 ],
             )
             if origen and destino and boton_buscar:
@@ -509,7 +519,15 @@ def _iniciar_busqueda(page):
     _cerrar_panel_login_si_abierto(page)
     if not _click_selector_visible(
         page,
-        ['button:has-text("Buscar vuelo")', 'button:has-text("Buscar voo")', 'button:has-text("Search")'],
+        [
+            'button:has-text("Buscar vuelo")',
+            'button:has-text("Buscar vuelos")',
+            'button:has-text("Buscar")',
+            'button:has-text("Buscar voo")',
+            'button:has-text("Search")',
+            'button[type="submit"]',
+            '[data-test*="search"]',
+        ],
         force=True,
         requerido=True,
         descripcion="botón Buscar vuelo",

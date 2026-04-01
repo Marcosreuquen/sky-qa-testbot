@@ -25,6 +25,7 @@ Este documento resume la arquitectura actual para cambios rápidos y seguros.
    - extras,
    - datos de pasajero,
    - checkout/pago,
+   - limpieza opcional de evidencias antiguas al iniciar,
    - espera final y evidencia.
 
 ## 3. Contratos internos importantes
@@ -40,6 +41,9 @@ Este documento resume la arquitectura actual para cambios rápidos y seguros.
   - última configuración de UI,
   - presets personalizados,
   - estado visual (secciones expand/collapse, preferencias).
+- `screenshots_pruebas/`:
+  - screenshots, HTML y reportes de exploración,
+  - puede autolimpiarse por antigüedad según `CFG`.
 
 No usar este archivo como fuente de verdad de negocio; solo UX local.
 

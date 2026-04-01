@@ -137,6 +137,7 @@ Ejemplos:
   python test_sky.py --tipo-viaje ROUND_TRIP --dias 16 --dias-retorno 5
   python test_sky.py --adultos 3 --ninos 1 --market PE
   python test_sky.py --market PE --modo-exploracion --solo-exploracion
+  python test_sky.py --retencion-evidencias-semanas 3
   python test_sky.py --usar-chrome-existente --cdp-url http://127.0.0.1:9222
         """,
     )
@@ -199,6 +200,26 @@ Ejemplos:
         "--control-dir",
         type=str,
         help="Directorio temporal de control para pausa/reanudación desde la GUI",
+    )
+    grupo_limpieza = grupo_rutas.add_mutually_exclusive_group()
+    grupo_limpieza.add_argument(
+        "--limpiar-evidencias-antiguas",
+        dest="limpiar_evidencias_antiguas",
+        action="store_true",
+        default=None,
+        help="Elimina entradas viejas de screenshots_pruebas antes de arrancar",
+    )
+    grupo_limpieza.add_argument(
+        "--no-limpiar-evidencias-antiguas",
+        dest="limpiar_evidencias_antiguas",
+        action="store_false",
+        help="No elimina evidencias viejas al iniciar la ejecución",
+    )
+    grupo_rutas.add_argument(
+        "--retencion-evidencias-semanas",
+        type=_int_positivo,
+        metavar="N",
+        help="Cantidad de semanas a conservar en screenshots_pruebas",
     )
 
     # --- 2. Datos del Vuelo ---
@@ -302,6 +323,8 @@ def aplicar_args(args):
         pausa           int   ms de pausa de seguridad entre pasos
         slow_mo         int   ms de slow_mo de Playwright
         espera_final_segundos int
+        limpiar_evidencias_antiguas bool
+        retencion_evidencias_semanas int
         usar_chrome_existente bool
         cdp_url         str
         cdp_reutilizar_primera_pestana bool
@@ -324,6 +347,8 @@ def aplicar_args(args):
         TIEMPO_PAUSA_SEGURIDAD,
         VELOCIDAD_VISUAL,
         ESPERA_FINAL_SEGUNDOS,
+        LIMPIAR_EVIDENCIAS_ANTIGUAS,
+        SEMANAS_RETENCION_EVIDENCIAS,
         VUELO_ORIGEN,
         VUELO_DESTINO,
         MIN_DIAS_A_FUTURO,
@@ -393,6 +418,16 @@ def aplicar_args(args):
         "slow_mo": args.slow_mo if args.slow_mo is not None else VELOCIDAD_VISUAL,
         "espera_final_segundos": (
             args.espera_final_segundos if args.espera_final_segundos is not None else ESPERA_FINAL_SEGUNDOS
+        ),
+        "limpiar_evidencias_antiguas": (
+            args.limpiar_evidencias_antiguas
+            if args.limpiar_evidencias_antiguas is not None
+            else LIMPIAR_EVIDENCIAS_ANTIGUAS
+        ),
+        "retencion_evidencias_semanas": (
+            args.retencion_evidencias_semanas
+            if args.retencion_evidencias_semanas is not None
+            else SEMANAS_RETENCION_EVIDENCIAS
         ),
         "usar_chrome_existente": args.usar_chrome_existente,
         "cdp_url": args.cdp_url or CDP_URL_DEFAULT,

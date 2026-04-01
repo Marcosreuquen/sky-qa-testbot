@@ -8,6 +8,19 @@ run:
 check:
 	python3 -m py_compile test_sky.py cli.py gui.py
 	venv/bin/python -c "from cli import aplicar_args, parse_args; import sys; sys.argv=['t','--market','PE']; cfg=aplicar_args(parse_args()); assert cfg['market']=='PE' and cfg['ambiente']=='qa'"
+	venv/bin/python -c "\
+from config.pago import MEDIO_PAGO_POR_MARKET, TARJETA_POR_MARKET; \
+from config.rutas import LIMPIAR_EVIDENCIAS_ANTIGUAS, SEMANAS_RETENCION_EVIDENCIAS; \
+tarjeta_cl=TARJETA_POR_MARKET['CL']; \
+assert MEDIO_PAGO_POR_MARKET['CL'] == 'Webpay'; \
+assert tarjeta_cl['tipo'] == 'Crédito'; \
+assert tarjeta_cl['numero'] == '4051885600446623'; \
+assert tarjeta_cl['cvv'] == '123'; \
+assert tarjeta_cl['rut'] == '11.111.111-1'; \
+assert tarjeta_cl['clave'] == '123'; \
+assert LIMPIAR_EVIDENCIAS_ANTIGUAS is True; \
+assert SEMANAS_RETENCION_EVIDENCIAS == 2; \
+print('CL Webpay defaults OK')"
 	@echo "✅ check OK"
 
 # Verifica que los 3 ambientes generan URLs distintas (no requiere browser)

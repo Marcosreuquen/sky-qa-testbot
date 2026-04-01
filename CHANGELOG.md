@@ -15,6 +15,17 @@ Formato recomendado por entrada:
 - `docs/BOT_FRICTIONS.md`: registro separado de parches, inconsistencias y mejoras sugeridas de causa raíz detectadas en ejecuciones reales del bot.
 
 ### Changed
+- Flujo de `CL QA` endurecido:
+  - búsqueda/home más tolerante a variantes de CTA/inputs en QA,
+  - Webpay actualizado para soportar variantes de portal (`Crédito`/`Tarjetas`) y selectores menos rígidos en autenticación,
+  - GUI ahora refresca la tarjeta precargada al cambiar el market a Chile si el usuario no ingresó un override manual.
+- Paso `DATOS_PASAJERO -> CHECKOUT` endurecido:
+  - contempla variantes nuevas de CTA (`Continuar al pago`) en passenger-detail,
+  - evita re-colapsar la tarjeta del pasajero cuando el formulario ya quedó abierto por validación.
+- Limpieza automática de evidencias:
+  - el bot puede borrar entradas antiguas de `screenshots_pruebas/` al iniciar,
+  - retención configurable por semanas desde config/CLI/GUI,
+  - GUI expone checkbox y semanas en "Configuración avanzada".
 - Soporte inicial de parámetros para extras:
   - `--seleccion-asiento SKIP|AUTO`
   - `--maletas-cabina`

@@ -17,6 +17,7 @@ from core.helpers import (
     esperar_correccion_runtime,
     gestionar_pausa_edicion,
     _buscar_selector_visible,
+    limpiar_evidencias_antiguas,
     pausar_en_checkpoint,
 )
 from core.search_flow import (
@@ -57,6 +58,10 @@ def run(playwright: Playwright) -> None:
     session_cdp = False
 
     try:
+        limpiar_evidencias_antiguas(
+            semanas_retencion=state.CFG.get("retencion_evidencias_semanas", 2),
+            habilitado=state.CFG.get("limpiar_evidencias_antiguas", True),
+        )
         browser, context, page, session_cdp = _crear_sesion_navegador(playwright)
         try:
             print(f"--- 🚀 Iniciando Test [{state.CFG['market']}]: {state.CFG['origen']} -> {state.CFG['destino']} ---")

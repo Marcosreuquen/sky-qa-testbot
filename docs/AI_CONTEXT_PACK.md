@@ -69,6 +69,7 @@ make smoke-checkout
 ## 7) Estado persistente local
 
 - `.sky_gui_settings.json`: preferencias de GUI y presets custom.
+- `screenshots_pruebas/`: evidencia runtime; puede autolimpiarse por semanas al arrancar.
 
 ## 8) Docs ampliadas
 

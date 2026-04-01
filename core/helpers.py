@@ -6,6 +6,7 @@ Sin dependencias de flujo de negocio — importar desde cualquier módulo.
 
 import os
 import re
+import shutil
 import time
 from datetime import datetime
 
@@ -48,8 +49,12 @@ def detectar_etapa_actual(page):
             "#origin-id",
             "#destination-id",
             'button:has-text("Buscar vuelo")',
+            'button:has-text("Buscar vuelos")',
+            'button:has-text("Buscar")',
             'button:has-text("Buscar voo")',
             'button:has-text("Search")',
+            'button[type="submit"]',
+            '[data-test*="search"]',
         ],
     ):
         return "BUSQUEDA"
@@ -242,6 +247,73 @@ def _guardar_html_debug(page, etapa):
         print(f"🧾 HTML debug [{etapa}] -> {html_path}")
     except Exception as error:
         print(f"⚠️ No se pudo guardar HTML debug [{etapa}]: {error}")
+
+
+def _tamano_ruta_bytes(path):
+    if os.path.isfile(path):
+        try:
+            return os.path.getsize(path)
+        except OSError:
+            return 0
+
+    total = 0
+    for root, _, files in os.walk(path):
+        for nombre in files:
+            archivo = os.path.join(root, nombre)
+            try:
+                total += os.path.getsize(archivo)
+            except OSError:
+                continue
+    return total
+
+
+def _formatear_bytes(cantidad):
+    if cantidad < 1024:
+        return f"{cantidad} B"
+
+    unidades = ["KB", "MB", "GB", "TB"]
+    valor = float(cantidad)
+    for unidad in unidades:
+        valor /= 1024.0
+        if valor < 1024 or unidad == unidades[-1]:
+            return f"{valor:.1f} {unidad}"
+    return f"{cantidad} B"
+
+
+def limpiar_evidencias_antiguas(base_dir="screenshots_pruebas", semanas_retencion=2, habilitado=True):
+    if not habilitado or semanas_retencion <= 0:
+        return
+
+    if not os.path.isdir(base_dir):
+        return
+
+    limite = time.time() - (semanas_retencion * 7 * 24 * 60 * 60)
+    eliminados = 0
+    recuperado_bytes = 0
+    errores = 0
+
+    for entrada in os.scandir(base_dir):
+        try:
+            if entrada.stat().st_mtime >= limite:
+                continue
+
+            recuperado_bytes += _tamano_ruta_bytes(entrada.path)
+            if entrada.is_dir(follow_symlinks=False):
+                shutil.rmtree(entrada.path)
+            else:
+                os.remove(entrada.path)
+            eliminados += 1
+        except Exception as error:
+            errores += 1
+            print(f"⚠️ No se pudo limpiar evidencia antigua '{entrada.path}': {error}")
+
+    if eliminados:
+        print(
+            "🧹 Limpieza de evidencias: "
+            f"{eliminados} entradas eliminadas (> {semanas_retencion} semanas, {_formatear_bytes(recuperado_bytes)}).",
+        )
+    elif errores:
+        print("⚠️ Limpieza de evidencias finalizó con errores y sin elementos eliminados.")
 
 
 # ==========================================

@@ -69,7 +69,12 @@ def _avanzar_a_checkout(page, timeout_ms=60000):
 
         _click_selector_visible(
             page,
-            ['button:has-text("Siguiente")', 'button:has-text("Ir al pago")'],
+            [
+                'button:has-text("Siguiente")',
+                'button:has-text("Ir al pago")',
+                'button:has-text("Continuar al pago")',
+                '.footer-shopping-cart__primary-button',
+            ],
             force=True,
         )
         page.wait_for_timeout(400)
@@ -80,6 +85,8 @@ def _avanzar_a_checkout(page, timeout_ms=60000):
                 'button:has-text("Proceder al pago")',
                 'button:has-text("Proceed to payment")',
                 'button:has-text("Ir al pago")',
+                'button:has-text("Continuar al pago")',
+                '.footer-shopping-cart__primary-button',
             ],
             force=True,
         )
@@ -219,6 +226,9 @@ def _rellenar_fecha_nacimiento(page, fecha):
 
 
 def _abrir_tarjeta_pasajero(page, pasajero, indice):
+    if _formulario_pasajero_visible(page):
+        return
+
     candidatos_texto = [
         f"Pasajero {indice}",
         f"{pasajero['nombre']} {pasajero['apellido']}",
@@ -227,7 +237,44 @@ def _abrir_tarjeta_pasajero(page, pasajero, indice):
     for texto in candidatos_texto:
         if _click_texto_visible(page, texto, exacto=False):
             page.wait_for_timeout(400)
-            return
+            if _formulario_pasajero_visible(page):
+                return
+
+    for selector in (
+        [".form-header__collapse"],
+        [".form-header"],
+        [".card-passenger__header"],
+        [".super-form.only-passenger-header"],
+    ):
+        if _click_selector_visible(page, selector, force=True):
+            page.wait_for_timeout(400)
+            if _formulario_pasajero_visible(page):
+                return
+
+
+def _formulario_pasajero_visible(page):
+    return _buscar_selector_visible(
+        page,
+        [
+            '[data-test="is-passengerForm-textFieldNamePax"] input',
+            '[data-test="is-passengerForm-textFieldName"] input',
+            '[data-test="is-passengerForm-textFieldLastname"] input',
+            '[data-test="is-passengerForm-saveButton"]',
+        ],
+    )
+
+
+def _pasajero_probablemente_guardado(page):
+    return bool(
+        _buscar_selector_visible(
+            page,
+            [
+                'button:has-text("Continuar al pago")',
+                '.footer-shopping-cart__primary-button',
+                '.form-header__success',
+            ],
+        )
+    )
 
 
 def _forzar_guardado_tarjetas_pasajero(page, pasajeros):
@@ -246,6 +293,10 @@ def _rellenar_pasajero(page, pasajero, indice, total):
     print(f"--- Pasajero {indice}/{total} ({pasajero.get('tipo_pasajero', 'ADT')}) ---")
     _abrir_tarjeta_pasajero(page, pasajero, indice)
     page.wait_for_timeout(800)
+
+    if not _formulario_pasajero_visible(page) and _pasajero_probablemente_guardado(page):
+        print(f"ℹ️ Pasajero {indice} ya aparece guardado; se reutiliza la tarjeta resumida.")
+        return
 
     _rellenar_input_visible(
         page,
@@ -308,4 +359,13 @@ def _rellenar_todos_los_pasajeros(page):
 
     _forzar_guardado_tarjetas_pasajero(page, pasajeros)
     print("--- Avanzando a checkout desde pasajeros ---")
-    _click_selector_visible(page, ['button:has-text("Siguiente")', 'button:has-text("Ir al pago")'], force=True)
+    _click_selector_visible(
+        page,
+        [
+            'button:has-text("Siguiente")',
+            'button:has-text("Ir al pago")',
+            'button:has-text("Continuar al pago")',
+            '.footer-shopping-cart__primary-button',
+        ],
+        force=True,
+    )
